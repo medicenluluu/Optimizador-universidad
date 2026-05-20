@@ -85,12 +85,16 @@ def get_hessian(expr, symbols, point):
 
 # --- BÚSQUEDA DE LÍNEA: CONDICIONES DE WOLFE ---
 
-def line_search_wolfe(expr, symbols, x, pk, c1=1e-4, c2=0.9, init_alpha=1.0):
+def line_search_wolfe(expr, symbols, x, pk, alpha_wolfe=1e-4, beta_wolfe=0.9, init_t=1.0):
     """
     Búsqueda de línea con Condiciones Fuertes de Wolfe usando Backtracking adaptativo.
+    Se utiliza:
+      - alpha_wolfe (α): parámetro de la primera condición (Armijo/suficiente descenso).
+      - beta_wolfe (β): parámetro de la segunda condición (Curvatura fuerte).
+      - t: tamaño de paso (inicia en init_t).
     """
-    alpha = init_alpha
-    alpha_min = 1e-10
+    t = init_t
+    t_min = 1e-10
     factor = 0.5
     
     fx = evaluate_func(expr, symbols, x)
@@ -98,27 +102,27 @@ def line_search_wolfe(expr, symbols, x, pk, c1=1e-4, c2=0.9, init_alpha=1.0):
     m1 = np.dot(grad_x, pk)
     
     for _ in range(100):
-        x_next = x + alpha * pk
+        x_next = x + t * pk
         fx_next = evaluate_func(expr, symbols, x_next)
         
-        # 1. Condición de Armijo (Suficiente Descenso)
-        if fx_next <= fx + c1 * alpha * m1:
+        # 1. Primera Condición de Wolfe: Armijo (Suficiente Descenso regulado por alpha)
+        if fx_next <= fx + alpha_wolfe * t * m1:
             grad_next = get_gradient(expr, symbols, x_next)
             m2 = np.dot(grad_next, pk)
             
-            # 2. Condición de Curvatura Fuerte
-            if abs(m2) <= c2 * abs(m1):
-                return alpha
+            # 2. Segunda Condición de Wolfe: Curvatura Fuerte (regulada por beta)
+            if abs(m2) <= beta_wolfe * abs(m1):
+                return t
             
-        alpha *= factor
-        if alpha < alpha_min:
-            return alpha_min
+        t *= factor
+        if t < t_min:
+            return t_min
             
-    return alpha
+    return t
 
 # --- ALGORITMOS DE OPTIMIZACIÓN ---
 
-def optimize(method, expr, symbols, x0, max_iter, tol, c1, c2, init_alpha=1.0):
+def optimize(method, expr, symbols, x0, max_iter, tol, alpha_wolfe, beta_wolfe, init_t=1.0):
     x = np.array(x0, dtype=float)
     n = len(x)
     history = []
@@ -177,16 +181,16 @@ def optimize(method, expr, symbols, x0, max_iter, tol, c1, c2, init_alpha=1.0):
                 # Fallback seguro a descenso de gradiente si la Hessiana es singular o indefinida
                 pk = -grad
         
-        # Búsqueda de línea con Condiciones de Wolfe pasándole el alpha inicial dinámico
-        alpha = line_search_wolfe(expr, symbols, x, pk, c1, c2, init_alpha)
+        # Búsqueda de línea con Condiciones de Wolfe pasándole el paso inicial y parámetros α y β
+        t = line_search_wolfe(expr, symbols, x, pk, alpha_wolfe, beta_wolfe, init_t)
         
-        # Actualización de la posición
-        x_next = x + alpha * pk
+        # Actualización de la posición usando el tamaño de paso t
+        x_next = x + t * pk
         fx_next = evaluate_func(expr, symbols, x_next)
         grad_next = get_gradient(expr, symbols, x_next)
         err_next = np.linalg.norm(grad_next)
         
-        history.append((k, x_next.copy(), fx_next, err_next, alpha, grad_next.copy()))
+        history.append((k, x_next.copy(), fx_next, err_next, t, grad_next.copy()))
         path.append(x_next.copy())
         
         # Siguiente iteración
@@ -227,10 +231,12 @@ max_iter = st.sidebar.number_input("Iteraciones máximas", min_value=1, max_valu
 tol = st.sidebar.number_input("Tolerancia (Convergencia)", value=1e-5, format="%.2e")
 
 st.sidebar.markdown("### 🔍 Parámetros de Wolfe")
-# Parámetro solicitado: Alpha inicial (α₀) para las condiciones de Wolfe
-init_alpha = st.sidebar.number_input("Paso inicial (α₀)", min_value=1e-4, max_value=100.0, value=1.0, step=0.1, format="%.4f")
-c1 = st.sidebar.slider("c1 (Armijo - Descenso)", min_value=1e-5, max_value=1e-1, value=1e-4, format="%.5f")
-c2 = st.sidebar.slider("c2 (Curvatura)", min_value=1e-2, max_value=0.99, value=0.9 if method != "Newton" else 0.1)
+# Parámetro de Paso Inicial t0
+init_t = st.sidebar.number_input("Paso inicial (t₀)", min_value=1e-4, max_value=100.0, value=1.0, step=0.1, format="%.4f")
+# Parámetro Alpha (α) para la primera condición (Armijo)
+alpha_wolfe = st.sidebar.slider("α (Armijo - Primera condición)", min_value=1e-5, max_value=1e-1, value=1e-4, format="%.5f")
+# Parámetro Beta (β) para la segunda condición (Curvatura)
+beta_wolfe = st.sidebar.slider("β (Curvatura - Segunda condición)", min_value=1e-2, max_value=0.99, value=0.9 if method != "Newton" else 0.1)
 
 # Botón para iniciar los cálculos
 if st.sidebar.button("🚀 Ejecutar Optimización", type="primary", use_container_width=True):
@@ -240,9 +246,9 @@ if st.sidebar.button("🚀 Ejecutar Optimización", type="primary", use_containe
         
         st.info("Calculando optimización... por favor espera.")
         
-        # Ejecutar el cálculo en segundo plano con el init_alpha dinámico
+        # Ejecutar el cálculo en segundo plano con los parámetros α, β y t0 actualizados
         x_min, f_min, total_iter, final_err, history, path = optimize(
-            method, expr, symbols, x0, max_iter, tol, c1, c2, init_alpha
+            method, expr, symbols, x0, max_iter, tol, alpha_wolfe, beta_wolfe, init_t
         )
         
         st.success("¡Optimización completada con éxito!")
@@ -287,7 +293,7 @@ if st.sidebar.button("🚀 Ejecutar Optimización", type="primary", use_containe
                     "Punto x(k)": [round(val, 6) for val in h[1]],
                     "f(x)": h[2],
                     "||∇f(x)|| (Error)": h[3],
-                    "Paso (α)": h[4]
+                    "Paso (t)": h[4]
                 }
                 rows.append(row)
             df_hist = pd.DataFrame(rows)
