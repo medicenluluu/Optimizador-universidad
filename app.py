@@ -2,253 +2,332 @@ import streamlit as st
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-from sympy import symbols, sympify, lambdify
+import sympy as sp
 
-st.set_page_config(page_title="Optimizador Avanzado", layout="wide")
+# Configuración inicial de la página web
+st.set_page_config(page_title="Optimizador Multivariable", layout="wide")
 
-def evaluar_f(func, x):
-    return func(x)
+# ==========================================
+# GESTIÓN DEL ESTADO DE SESIÓN (PANTALLA 0 - BIENVENIDA)
+# ==========================================
+if "username" not in st.session_state:
+    st.session_state.username = None
 
-def obtener_gradiente(func, x):
-    h = 1e-6
-    n = len(x)
-    grad = np.zeros(n)
+# Paso 0: Pantalla de Ingreso de Nombre (Se muestra si no hay un nombre guardado)
+if st.session_state.username is None:
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center; color: #4F46E5;'>¡Bienvenido al Optimizador Numérico!</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #6B7280; font-size: 1.1em;'>Aplicación para encontrar el mínimo de una función usando métodos avanzados de optimización.</p>", unsafe_allow_html=True)
+    
+    col1, col2, col3 = st.columns([1, 1.8, 1])
+    with col2:
+        with st.container(border=True):
+            st.markdown("<h3 style='text-align: center; margin-top:0;'>Identificación</h3>", unsafe_allow_html=True)
+            nombre = st.text_input("Ingresa tu nombre para comenzar:", placeholder="Ej. Juan Pérez")
+            
+            st.markdown("<br>", unsafe_allow_html=True)
+            if st.button("Ingresar", use_container_width=True, type="primary"):
+                if nombre.strip() != "":
+                    st.session_state.username = nombre.strip()
+                    st.rerun() # Recarga la app para aplicar el inicio de sesión
+                else:
+                    st.error("Por favor, ingresa tu nombre antes de hacer clic en Ingresar.")
+                    
+    st.markdown("<p style='text-align: center; color: #9CA3AF; margin-top: 50px;'>Trabajo Grupal - Optimización Numérica</p>", unsafe_allow_html=True)
+    st.stop() # Detiene la carga del resto del script hasta que el usuario inicie sesión
+
+# ==========================================
+# CÓDIGO DEL OPTIMIZADOR (Pantallas de Trabajo)
+# ==========================================
+
+# Menú lateral para saludar al usuario y opción de cerrar sesión
+st.sidebar.markdown(f"### 👤 Usuario: {st.session_state.username}")
+if st.sidebar.button("Cerrar Sesión 🚪", type="secondary", use_container_width=True):
+    st.session_state.username = None
+    st.rerun()
+
+# --- FUNCIONES MATEMÁTICAS ---
+
+def get_symbols_and_func(expr_str, num_vars):
+    """Parsea el string de la función y genera símbolos en SymPy."""
+    # Reemplazar notación común de potencias de JavaScript/humana a la de Python
+    expr_cleaned = expr_str.replace('^', '**')
+    # Crear símbolos dinámicamente: x1, x2, ..., xN
+    symbols = sp.symbols(f'x1:{num_vars + 1}')
+    # Compilar expresión sympy
+    expr = sp.sympify(expr_cleaned)
+    return symbols, expr
+
+def evaluate_func(expr, symbols, point):
+    """Evalúa la función en un punto numérico."""
+    subs_dict = {sym: val for sym, val in zip(symbols, point)}
+    return float(expr.subs(subs_dict))
+
+def get_gradient(expr, symbols, point):
+    """Calcula el gradiente analítico en un punto."""
+    grad = []
+    subs_dict = {sym: val for sym, val in zip(symbols, point)}
+    for sym in symbols:
+        deriv = sp.diff(expr, sym)
+        grad.append(float(deriv.subs(subs_dict)))
+    return np.array(grad, dtype=float)
+
+def get_hessian(expr, symbols, point):
+    """Calcula la matriz Hessiana analítica en un punto."""
+    n = len(symbols)
+    hessian = np.zeros((n, n))
+    subs_dict = {sym: val for sym, val in zip(symbols, point)}
     for i in range(n):
-        x_forward = np.array(x, dtype=float)
-        x_backward = np.array(x, dtype=float)
-        x_forward[i] += h
-        x_backward[i] -= h
-        grad[i] = (evaluar_f(func, x_forward) - evaluar_f(func, x_backward)) / (2 * h)
-    return grad
+        for j in range(n):
+            deriv = sp.diff(sp.diff(expr, symbols[i]), symbols[j])
+            hessian[i, j] = float(deriv.subs(subs_dict))
+    return hessian
 
-def obtener_hessiana(func, x):
-    h = 1e-4
-    n = len(x)
-    H = np.zeros((n, n))
-    fx = evaluar_f(func, x)
-    for i in range(n):
-        for j in range(i + 1):
-            x_ij = np.array(x, dtype=float)
-            x_ij[i] += h; x_ij[j] += h
-            x_i = np.array(x, dtype=float)
-            x_i[i] += h
-            x_j = np.array(x, dtype=float)
-            x_j[j] += h
-            d2f = (evaluar_f(func, x_ij) - evaluar_f(func, x_i) - evaluar_f(func, x_j) + fx) / (h * h)
-            H[i, j] = d2f
-            H[j, i] = d2f
-    return H
+# --- BÚSQUEDA DE LÍNEA: CONDICIONES DE WOLFE ---
 
-def busqueda_linea_wolfe(func, x, p, grad, c1=0.0001, c2=0.9):
+def line_search_wolfe(expr, symbols, x, pk, c1=1e-4, c2=0.9):
+    """
+    Búsqueda de línea con Condiciones Fuertes de Wolfe usando Backtracking adaptativo.
+    """
     alpha = 1.0
-    fx = evaluar_f(func, x)
-    dir_deriv = np.dot(grad, p)
-    if dir_deriv >= 0:
-        return 1e-4
-    rho = 0.5
-    max_iter = 20
-    for _ in range(max_iter):
-        x_new = x + alpha * p
-        fx_new = evaluar_f(func, x_new)
-        if fx_new <= fx + c1 * alpha * dir_deriv:
-            grad_new = obtener_gradiente(func, x_new)
-            dir_deriv_new = np.dot(grad_new, p)
-            if dir_deriv_new >= c2 * dir_deriv:
+    alpha_min = 1e-10
+    factor = 0.5
+    
+    fx = evaluate_func(expr, symbols, x)
+    grad_x = get_gradient(expr, symbols, x)
+    m1 = np.dot(grad_x, pk)
+    
+    for _ in range(100):
+        x_next = x + alpha * pk
+        fx_next = evaluate_func(expr, symbols, x_next)
+        
+        # 1. Condición de Armijo (Suficiente Descenso)
+        if fx_next <= fx + c1 * alpha * m1:
+            grad_next = get_gradient(expr, symbols, x_next)
+            m2 = np.dot(grad_next, pk)
+            
+            # 2. Condición de Curvatura Fuerte
+            if abs(m2) <= c2 * abs(m1):
                 return alpha
-            if alpha < 1e-3:
-                return alpha
-        alpha *= rho
+            
+        alpha *= factor
+        if alpha < alpha_min:
+            return alpha_min
+            
     return alpha
 
-def ejecutar_optimizacion(func, x0, metodo, max_iter, tol, c1, c2):
+# --- ALGORITMOS DE OPTIMIZACIÓN ---
+
+def optimize(method, expr, symbols, x0, max_iter, tol, c1, c2):
     x = np.array(x0, dtype=float)
     n = len(x)
-    historial_error = []
-    historial_trayectoria = [x.copy()]
-    historial_f = []
-    historial_alpha = [0.0]
+    history = []
+    path = [x.copy()]
     
-    iteracion = 0
-    grad = obtener_gradiente(func, x)
-    error = np.linalg.norm(grad)
-    p_prev = None
-    grad_prev = None
+    # Evaluar punto de partida
+    fx = evaluate_func(expr, symbols, x)
+    grad = get_gradient(expr, symbols, x)
+    err = np.linalg.norm(grad)
+    history.append((0, x.copy(), fx, err, 0.0))
     
-    historial_error.append(error)
-    historial_f.append(evaluar_f(func, x))
+    # Inicialización para Gradiente Conjugado
+    pk = -grad
     
-    while iteracion < max_iter and error > tol:
-        if metodo == 'Descenso de Gradiente':
-            p = -grad
-        elif metodo == 'Gradiente Conjugado':
-            if iteracion == 0 or iteracion % n == 0:
-                p = -grad
+    for k in range(1, max_iter + 1):
+        if err < tol:
+            break
+            
+        # Determinar dirección de búsqueda (pk) según el método
+        if method == "Descenso de Gradiente":
+            pk = -grad
+            
+        elif method == "Gradiente Conjugado":
+            if k == 1:
+                pk = -grad
             else:
-                beta = np.dot(grad, grad) / np.dot(grad_prev, grad_prev)
-                p = -grad + beta * p_prev
-                if np.dot(p, grad) >= 0:
-                    p = -grad
-        elif metodo == 'Newton':
-            H = obtener_hessiana(func, x)
+                _, _, _, prev_err, _ = history[-2]
+                # Coeficiente beta con la fórmula de Fletcher-Reeves
+                if prev_err > 1e-12:
+                    beta = (err**2) / (prev_err**2)
+                else:
+                    beta = 0
+                pk = -grad + beta * pk
+                
+                # Reinicio al gradiente si pierde la propiedad de dirección de descenso
+                if np.dot(pk, grad) >= 0:
+                    pk = -grad
+                    
+        elif method == "Newton":
+            hess = get_hessian(expr, symbols, x)
             try:
-                p = np.linalg.solve(H, -grad)
-                if np.dot(p, grad) >= 0:
-                    raise ValueError
-            except:
-                p = -grad
-                
-        p_prev = p.copy()
-        grad_prev = grad.copy()
+                # Intentar resolver el sistema lineal para la dirección H * pk = -g
+                pk = np.linalg.solve(hess, -grad)
+                # Garantizar descenso si no es definida positiva
+                if np.dot(pk, grad) >= 0:
+                    pk = -grad
+            except np.linalg.LinAlgError:
+                # Fallback seguro a descenso de gradiente si la Hessiana es singular o indefinida
+                pk = -grad
         
-        alpha = busqueda_linea_wolfe(func, x, p, grad, c1, c2)
-        x = x + alpha * p
-        grad = obtener_gradiente(func, x)
-        error = np.linalg.norm(grad)
+        # Búsqueda de línea con Condiciones de Wolfe
+        alpha = line_search_wolfe(expr, symbols, x, pk, c1, c2)
         
-        historial_error.append(error)
-        historial_trayectoria.append(x.copy())
-        historial_f.append(evaluar_f(func, x))
-        historial_alpha.append(alpha)
-        iteracion += 1
+        # Actualización de la posición
+        x_next = x + alpha * pk
+        fx_next = evaluate_func(expr, symbols, x_next)
+        grad_next = get_gradient(expr, symbols, x_next)
+        err_next = np.linalg.norm(grad_next)
         
-    return {
-        'x_final': x, 'f_final': evaluar_f(func, x), 'iteraciones': iteracion,
-        'error_final': error, 'historial_error': historial_error,
-        'trayectoria': historial_trayectoria, 'historial_f': historial_f,
-        'historial_alpha': historial_alpha
-    }
+        history.append((k, x_next.copy(), fx_next, err_next, alpha))
+        path.append(x_next.copy())
+        
+        # Siguiente iteración
+        x = x_next
+        grad = grad_next
+        err = err_next
+        
+    return x, fx, k, err, history, np.array(path)
 
-def graficar_resultados(func, resultados):
-    trayectoria = np.array(resultados['trayectoria'])
-    hist_error = resultados['historial_error']
-    n_vars = trayectoria.shape[1]
-    
-    if n_vars == 2:
-        fig = plt.figure(figsize=(18, 5))
-        
-        # Gráfico Convergencia
-        ax1 = fig.add_subplot(131)
-        ax1.plot(hist_error, color='blue', marker='o', markersize=3)
-        ax1.set_yscale('log')
-        ax1.set_title('Convergencia: Error vs Iteraciones')
-        ax1.set_xlabel('Iteración k')
-        ax1.set_ylabel('||∇f|| (log)')
-        ax1.grid(True, which="both", ls="--", alpha=0.5)
-        
-        # Preparar Malla
-        x_vals = trayectoria[:, 0]
-        y_vals = trayectoria[:, 1]
-        margen_x = max((max(x_vals) - min(x_vals)) * 0.4, 1.0)
-        margen_y = max((max(y_vals) - min(y_vals)) * 0.4, 1.0)
-        
-        X, Y = np.meshgrid(
-            np.linspace(min(x_vals) - margen_x, max(x_vals) + margen_x, 50),
-            np.linspace(min(y_vals) - margen_y, max(y_vals) + margen_y, 50)
-        )
-        Z = np.zeros_like(X)
-        for i in range(X.shape[0]):
-            for j in range(X.shape[1]):
-                Z[i, j] = func([X[i, j], Y[i, j]])
-                
-        # Gráfico Contornos
-        ax2 = fig.add_subplot(132)
-        ax2.contour(X, Y, Z, levels=30, cmap='viridis')
-        ax2.plot(x_vals, y_vals, 'r.-', label='Trayectoria', markersize=5)
-        ax2.plot(x_vals[-1], y_vals[-1], 'y*', markersize=15, label='Mínimo')
-        ax2.set_title('Curvas de Nivel')
-        ax2.legend()
-        
-        # Gráfico 3D
-        ax3 = fig.add_subplot(133, projection='3d')
-        ax3.plot_surface(X, Y, Z, cmap='viridis', alpha=0.8)
-        ax3.set_title('Superficie 3D')
-        
-    else:
-        fig = plt.figure(figsize=(8, 5))
-        plt.plot(hist_error, color='blue', marker='o')
-        plt.yscale('log')
-        plt.title('Convergencia: Error vs Iteraciones')
-        plt.xlabel('Iteración k')
-        plt.ylabel('||∇f|| (log)')
-        plt.grid(True, which="both", ls="--", alpha=0.5)
+# ==========================================
+# INTERFAZ DE CONFIGURACIÓN DEL USUARIO
+# ==========================================
 
-    plt.tight_layout()
-    return fig
+st.title("🧮 Optimizador Multivariable")
+st.write(f"¡Hola **{st.session_state.username}**! Configura los parámetros en el panel izquierdo y haz clic en 'Ejecutar Optimización'.")
 
-st.title("📈 Optimizador de Funciones - Proyecto Grupal")
-st.markdown("Encuentra el mínimo de una función usando métodos numéricos y condiciones de Wolfe.")
+# Panel lateral con todas las opciones solicitadas por tu profesor
+st.sidebar.header("⚙️ Parámetros de Entrada")
 
-with st.sidebar:
-    st.header("1. Parámetros de Entrada")
-    func_str = st.text_input("Función f(x)", value="100 * (x2 - x1**2)**2 + (1 - x1)**2")
-    st.caption("Usa x1, x2... y ** para exponentes (Ej. x1**2)")
-    
-    x0_str = st.text_input("Punto inicial (separado por comas)", value="-1.2, 1.0")
-    
-    metodo = st.selectbox("Método de Optimización", 
-                         ['Descenso de Gradiente', 'Gradiente Conjugado', 'Newton'])
-    
-    max_iter = st.number_input("Iteraciones Máximas", min_value=10, max_value=5000, value=1000)
-    tol = st.number_input("Tolerancia", format="%e", value=1e-5)
-    
-    st.subheader("Condiciones de Wolfe")
-    c1 = st.number_input("c1 (Armijo)", format="%f", value=0.0001)
-    c2 = st.number_input("c2 (Curvatura)", format="%f", value=0.9)
-    
-    ejecutar = st.button("🚀 Ejecutar Optimización", use_container_width=True)
+num_vars = st.sidebar.number_input("Número de variables (N)", min_value=1, max_value=10, value=2, step=1)
+method = st.sidebar.selectbox("Método de optimización", ["Descenso de Gradiente", "Gradiente Conjugado", "Newton"])
+func_str = st.sidebar.text_input("Función objetivo f(x)", value="100*(x2 - x1^2)^2 + (1 - x1)^2")
 
-if ejecutar:
+# Generar puntos de partida dinámicos para N variables
+st.sidebar.markdown("### Punto inicial x0")
+x0 = []
+cols_x0 = st.sidebar.columns(num_vars)
+for i in range(num_vars):
+    val = cols_x0[i].number_input(f"x{i+1}", value=-1.2 if i==0 else 1.0)
+    x0.append(val)
+
+max_iter = st.sidebar.number_input("Iteraciones máximas", min_value=1, max_value=2000, value=200, step=10)
+tol = st.sidebar.number_input("Tolerancia (Convergencia)", value=1e-5, format="%.2e")
+
+st.sidebar.markdown("### 🔍 Parámetros de Wolfe")
+c1 = st.sidebar.slider("c1 (Armijo - Descenso)", min_value=1e-5, max_value=1e-1, value=1e-4, format="%.5f")
+c2 = st.sidebar.slider("c2 (Curvatura)", min_value=1e-2, max_value=0.99, value=0.9 if method != "Newton" else 0.1)
+
+# Botón para iniciar los cálculos
+if st.sidebar.button("🚀 Ejecutar Optimización", type="primary", use_container_width=True):
     try:
-        # Pre-procesamiento de entradas
-        func_str_clean = func_str.replace('^', '**')
-        x0 = [float(val.strip()) for val in x0_str.split(',')]
-        num_vars = len(x0)
+        # Validación matemática inicial
+        symbols, expr = get_symbols_and_func(func_str, num_vars)
         
-        # Procesar con Sympy
-        with st.spinner('Analizando función matemática...'):
-            syms = symbols(f'x1:{num_vars + 1}')
-            expr = sympify(func_str_clean)
-            func_lambda = lambdify([syms], expr, "numpy")
-            
-            def funcion_objetivo(x_array):
-                return float(func_lambda(x_array))
-                
-            # Validar que la función es evaluable en x0
-            funcion_objetivo(x0)
-            
-        with st.spinner('Ejecutando algoritmo de optimización...'):
-            resultados = ejecutar_optimizacion(
-                funcion_objetivo, x0, metodo, max_iter, tol, c1, c2
-            )
-            
-        # Mostrar Resultados
+        st.info("Calculando optimización... por favor espera.")
+        
+        # Ejecutar el cálculo en segundo plano
+        x_min, f_min, total_iter, final_err, history, path = optimize(
+            method, expr, symbols, x0, max_iter, tol, c1, c2
+        )
+        
         st.success("¡Optimización completada con éxito!")
         
-        st.subheader("Resultados")
-        col1, col2, col3, col4 = st.columns(4)
-        x_min_str = "[" + ", ".join([f"{v:.4f}" for v in resultados['x_final']]) + "]"
-        col1.metric("Punto Mínimo x*", x_min_str)
-        col2.metric("Valor f(x*)", f"{resultados['f_final']:.6f}")
-        col3.metric("Iteraciones", resultados['iteraciones'])
-        col4.metric("Error Final ||∇f||", f"{resultados['error_final']:.2e}")
+        # --- DISEÑO Y PRESENTACIÓN DE RESULTADOS ---
+        col_m1, col_m2, col_m3, col_m4 = st.columns(4)
+        col_m1.metric("Valor Mínimo f(x*)", f"{f_min:.6e}")
+        col_m2.metric("Iteraciones", f"{total_iter}")
+        col_m3.metric("Gradiente Final (Error)", f"{final_err:.6e}")
+        col_m4.metric("Estado de parada", "Convergencia" if final_err < tol else "Máx Iteraciones")
         
-        # Mostrar Gráficas
-        st.subheader("Análisis Gráfico")
-        fig = graficar_resultados(funcion_objetivo, resultados)
-        st.pyplot(fig)
+        # Mostrar las coordenadas del mínimo encontrado de forma ordenada
+        st.markdown("### 📍 Punto Mínimo Encontrado ($x^*$)")
+        pt_dict = {f"Variable x{i+1}": [val] for i, val in enumerate(x_min)}
+        st.table(pd.DataFrame(pt_dict))
         
-        # Mostrar Tabla usando Pandas
-        st.subheader("Tabla de Iteraciones")
-        df = pd.DataFrame({
-            'Iteración': range(len(resultados['historial_f'])),
-            'x(k)': [str(np.round(x, 4)) for x in resultados['trayectoria']],
-            'f(x)': resultados['historial_f'],
-            '||∇f||': resultados['historial_error'],
-            'Paso (α)': resultados['historial_alpha']
-        })
-        st.dataframe(df, use_container_width=True)
+        # PESTAÑAS DE VISUALIZACIÓN DE DATOS (Convergencia, Tabla y Gráficas Espaciales)
+        tab1, tab2, tab3 = st.tabs(["📉 Convergencia", "📊 Tabla de Iteraciones", "🗺️ Análisis Espacial (2D/3D)"])
         
+        with tab1:
+            st.subheader("Gráfico de Convergencia")
+            fig, ax = plt.subplots(figsize=(10, 4.5))
+            iters = [h[0] for h in history]
+            errors = [h[3] for h in history]
+            
+            ax.plot(iters, errors, color="#4F46E5", linewidth=2.5, marker='o', markersize=4, label='||∇f(x)||')
+            ax.set_yscale('log')
+            ax.set_xlabel('Número de Iteración (k)', fontsize=11)
+            ax.set_ylabel('Norma del Gradiente (Error)', fontsize=11)
+            ax.set_title('Convergencia del Algoritmo (Escala Semilogarítmica)', fontsize=12, fontweight='bold')
+            ax.grid(True, which="both", linestyle="--", alpha=0.5)
+            ax.legend()
+            st.pyplot(fig)
+            
+        with tab2:
+            st.subheader("Historial detallado de iteraciones")
+            # Construir la estructura de la tabla de iteraciones solicitada
+            rows = []
+            for h in history:
+                row = {
+                    "Iteración (k)": h[0],
+                    "Punto x(k)": [round(val, 6) for val in h[1]],
+                    "f(x)": h[2],
+                    "||∇f(x)|| (Error)": h[3],
+                    "Paso (α)": h[4]
+                }
+                rows.append(row)
+            df_hist = pd.DataFrame(rows)
+            st.dataframe(df_hist, use_container_width=True)
+            
+        with tab3:
+            # Gráficos de curvas de nivel y 3D (disponibles solo para optimizaciones en 2D)
+            if num_vars == 2:
+                st.subheader("Representación Topográfica y de Superficie")
+                
+                xs = path[:, 0]
+                ys = path[:, 1]
+                
+                margin_x = max((xs.max() - xs.min()) * 0.3, 1.0)
+                margin_y = max((ys.max() - ys.min()) * 0.3, 1.0)
+                
+                x_lim = np.linspace(xs.min() - margin_x, xs.max() + margin_x, 100)
+                y_lim = np.linspace(ys.min() - margin_y, ys.max() + margin_y, 100)
+                
+                X, Y = np.meshgrid(x_lim, y_lim)
+                Z = np.zeros_like(X)
+                
+                for i in range(len(x_lim)):
+                    for j in range(len(y_lim)):
+                        Z[j, i] = evaluate_func(expr, symbols, [X[j, i], Y[j, i]])
+                
+                # Renderizado de los gráficos usando matplotlib
+                fig_spatial, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
+                
+                # Gráfica 1: Curvas de nivel cenitales
+                contour = ax1.contour(X, Y, Z, levels=30, cmap='viridis', alpha=0.8)
+                ax1.clabel(contour, inline=True, fontsize=8)
+                ax1.plot(xs, ys, color='red', marker='o', markersize=4, linewidth=1.5, label='Trayectoria')
+                ax1.scatter(x0[0], x0[1], color='blue', s=80, zorder=5, label='Inicio (x0)')
+                ax1.scatter(x_min[0], x_min[1], color='gold', marker='*', s=200, zorder=5, label='Mínimo (x*)')
+                ax1.set_title("Trayectoria en Curvas de Nivel", fontsize=12, fontweight='bold')
+                ax1.set_xlabel("x1")
+                ax1.set_ylabel("x2")
+                ax1.legend()
+                ax1.grid(True, linestyle=":", alpha=0.6)
+                
+                # Gráfica 2: Superficie en perspectiva 3D
+                ax2 = fig_spatial.add_subplot(1, 2, 2, projection='3d')
+                surf = ax2.plot_surface(X, Y, Z, cmap='viridis', edgecolor='none', alpha=0.6)
+                ax2.plot(xs, ys, [evaluate_func(expr, symbols, p) for p in path], color='red', marker='o', markersize=2, linewidth=2, zorder=10)
+                ax2.set_title("Superficie f(x1, x2) en 3D", fontsize=12, fontweight='bold')
+                ax2.set_xlabel("x1")
+                ax2.set_ylabel("x2")
+                ax2.set_zlabel("f(x)")
+                fig_spatial.colorbar(surf, ax=ax2, shrink=0.5, aspect=10)
+                
+                st.pyplot(fig_spatial)
+            else:
+                st.info("Las visualizaciones espaciales 2D/3D están limitadas exclusivamente para funciones de 2 variables.")
+                
     except Exception as e:
-        st.error(f"Error al evaluar la función o ejecutar el algoritmo. Revisa la sintaxis. Detalle: {e}")
-        
+        st.error(f"Ocurrió un error en la evaluación matemática o computacional: {e}")
+        st.warning("Verifica que la función esté bien escrita (ej: usar x1, x2 y operadores explícitos como '*' para multiplicaciones).")
