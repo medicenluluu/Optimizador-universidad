@@ -128,16 +128,17 @@ def optimize(method, expr, symbols, x0, max_iter, tol, c1, c2):
     fx = evaluate_func(expr, symbols, x)
     grad = get_gradient(expr, symbols, x)
     err = np.linalg.norm(grad)
-    history.append((0, x.copy(), fx, err, 0.0))
+    # Guardamos también el gradiente en history (índice 5) para el cálculo de beta en GC
+    history.append((0, x.copy(), fx, err, 0.0, grad.copy()))
     
-    # Inicialización para Gradiente Conjugado
+    # Inicialización para la dirección inicial de búsqueda
     pk = -grad
     
     for k in range(1, max_iter + 1):
         if err < tol:
             break
             
-        # Determinar dirección de búsqueda (pk) según el método
+        # Determinar dirección de búsqueda (pk) según el método seleccionado
         if method == "Descenso de Gradiente":
             pk = -grad
             
@@ -145,15 +146,22 @@ def optimize(method, expr, symbols, x0, max_iter, tol, c1, c2):
             if k == 1:
                 pk = -grad
             else:
-                _, _, _, prev_err, _ = history[-2]
-                # Coeficiente beta con la fórmula de Fletcher-Reeves
-                if prev_err > 1e-12:
-                    beta = (err**2) / (prev_err**2)
-                else:
-                    beta = 0
-                pk = -grad + beta * pk
+                # Recuperar el gradiente de la iteración previa
+                grad_prev = history[-2][5]
+                pk_prev = pk # Dirección previa
                 
-                # Reinicio al gradiente si pierde la propiedad de dirección de descenso
+                denom_fr = np.dot(grad_prev, grad_prev)
+                
+                # Calcular Beta (β) usando únicamente Fletcher-Reeves
+                if denom_fr > 1e-15:
+                    beta = np.dot(grad, grad) / denom_fr
+                else:
+                    beta = 0.0
+                
+                # Nueva dirección conjugada
+                pk = -grad + beta * pk_prev
+                
+                # Heurística de reinicio: Si la dirección calculada no es de descenso estricto, reiniciamos al gradiente
                 if np.dot(pk, grad) >= 0:
                     pk = -grad
                     
@@ -178,7 +186,7 @@ def optimize(method, expr, symbols, x0, max_iter, tol, c1, c2):
         grad_next = get_gradient(expr, symbols, x_next)
         err_next = np.linalg.norm(grad_next)
         
-        history.append((k, x_next.copy(), fx_next, err_next, alpha))
+        history.append((k, x_next.copy(), fx_next, err_next, alpha, grad_next.copy()))
         path.append(x_next.copy())
         
         # Siguiente iteración
@@ -200,6 +208,11 @@ st.sidebar.header("⚙️ Parámetros de Entrada")
 
 num_vars = st.sidebar.number_input("Número de variables (N)", min_value=1, max_value=10, value=2, step=1)
 method = st.sidebar.selectbox("Método de optimización", ["Descenso de Gradiente", "Gradiente Conjugado", "Newton"])
+
+# Mensaje estático indicando el uso de Fletcher-Reeves cuando se selecciona Gradiente Conjugado
+if method == "Gradiente Conjugado":
+    st.sidebar.info("Gradiente Conjugado implementado con la fórmula clásica de **Fletcher-Reeves**.")
+
 func_str = st.sidebar.text_input("Función objetivo f(x)", value="100*(x2 - x1^2)^2 + (1 - x1)^2")
 
 # Generar puntos de partida dinámicos para N variables
