@@ -85,11 +85,11 @@ def get_hessian(expr, symbols, point):
 
 # --- BÚSQUEDA DE LÍNEA: CONDICIONES DE WOLFE ---
 
-def line_search_wolfe(expr, symbols, x, pk, c1=1e-4, c2=0.9):
+def line_search_wolfe(expr, symbols, x, pk, c1=1e-4, c2=0.9, init_alpha=1.0):
     """
     Búsqueda de línea con Condiciones Fuertes de Wolfe usando Backtracking adaptativo.
     """
-    alpha = 1.0
+    alpha = init_alpha
     alpha_min = 1e-10
     factor = 0.5
     
@@ -118,7 +118,7 @@ def line_search_wolfe(expr, symbols, x, pk, c1=1e-4, c2=0.9):
 
 # --- ALGORITMOS DE OPTIMIZACIÓN ---
 
-def optimize(method, expr, symbols, x0, max_iter, tol, c1, c2):
+def optimize(method, expr, symbols, x0, max_iter, tol, c1, c2, init_alpha=1.0):
     x = np.array(x0, dtype=float)
     n = len(x)
     history = []
@@ -177,8 +177,8 @@ def optimize(method, expr, symbols, x0, max_iter, tol, c1, c2):
                 # Fallback seguro a descenso de gradiente si la Hessiana es singular o indefinida
                 pk = -grad
         
-        # Búsqueda de línea con Condiciones de Wolfe
-        alpha = line_search_wolfe(expr, symbols, x, pk, c1, c2)
+        # Búsqueda de línea con Condiciones de Wolfe pasándole el alpha inicial dinámico
+        alpha = line_search_wolfe(expr, symbols, x, pk, c1, c2, init_alpha)
         
         # Actualización de la posición
         x_next = x + alpha * pk
@@ -227,6 +227,8 @@ max_iter = st.sidebar.number_input("Iteraciones máximas", min_value=1, max_valu
 tol = st.sidebar.number_input("Tolerancia (Convergencia)", value=1e-5, format="%.2e")
 
 st.sidebar.markdown("### 🔍 Parámetros de Wolfe")
+# Parámetro solicitado: Alpha inicial (α₀) para las condiciones de Wolfe
+init_alpha = st.sidebar.number_input("Paso inicial (α₀)", min_value=1e-4, max_value=100.0, value=1.0, step=0.1, format="%.4f")
 c1 = st.sidebar.slider("c1 (Armijo - Descenso)", min_value=1e-5, max_value=1e-1, value=1e-4, format="%.5f")
 c2 = st.sidebar.slider("c2 (Curvatura)", min_value=1e-2, max_value=0.99, value=0.9 if method != "Newton" else 0.1)
 
@@ -238,9 +240,9 @@ if st.sidebar.button("🚀 Ejecutar Optimización", type="primary", use_containe
         
         st.info("Calculando optimización... por favor espera.")
         
-        # Ejecutar el cálculo en segundo plano
+        # Ejecutar el cálculo en segundo plano con el init_alpha dinámico
         x_min, f_min, total_iter, final_err, history, path = optimize(
-            method, expr, symbols, x0, max_iter, tol, c1, c2
+            method, expr, symbols, x0, max_iter, tol, c1, c2, init_alpha
         )
         
         st.success("¡Optimización completada con éxito!")
