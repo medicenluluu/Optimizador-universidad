@@ -101,16 +101,20 @@ def line_search_wolfe(expr, symbols, x, pk, alpha_wolfe=1e-4, beta_wolfe=0.9, in
     grad_x = get_gradient(expr, symbols, x)
     m1 = np.dot(grad_x, pk)
     
+    # Si la dirección de búsqueda no es de descenso estricto, evitamos problemas
+    if m1 >= 0:
+        return t
+    
     for _ in range(100):
         x_next = x + t * pk
         fx_next = evaluate_func(expr, symbols, x_next)
         
-        # 1. Primera Condición de Wolfe: Armijo (Suficiente Descenso regulado por alpha)
+        # 1. Primera Condición de Wolfe: Armijo (Suficiente Descenso regulado por alpha_wolfe)
         if fx_next <= fx + alpha_wolfe * t * m1:
             grad_next = get_gradient(expr, symbols, x_next)
             m2 = np.dot(grad_next, pk)
             
-            # 2. Segunda Condición de Wolfe: Curvatura Fuerte (regulada por beta)
+            # 2. Segunda Condición de Wolfe: Curvatura Fuerte (regulada por beta_wolfe)
             if abs(m2) <= beta_wolfe * abs(m1):
                 return t
             
@@ -122,7 +126,7 @@ def line_search_wolfe(expr, symbols, x, pk, alpha_wolfe=1e-4, beta_wolfe=0.9, in
 
 # --- ALGORITMOS DE OPTIMIZACIÓN ---
 
-def optimize(method, expr, symbols, x0, max_iter, tol, alpha_wolfe, beta_wolfe, init_t=1.0):
+def optimize(method, expr, symbols, x0, max_iter, tol, step_type, fixed_alpha, alpha_wolfe, beta_wolfe, init_t=1.0):
     x = np.array(x0, dtype=float)
     n = len(x)
     history = []
@@ -132,7 +136,7 @@ def optimize(method, expr, symbols, x0, max_iter, tol, alpha_wolfe, beta_wolfe, 
     fx = evaluate_func(expr, symbols, x)
     grad = get_gradient(expr, symbols, x)
     err = np.linalg.norm(grad)
-    # Guardamos también el gradiente en history (índice 5) para el cálculo de beta en GC
+    # Guardamos el gradiente en history (índice 5) para el cálculo de Fletcher-Reeves
     history.append((0, x.copy(), fx, err, 0.0, grad.copy()))
     
     # Inicialización para la dirección inicial de búsqueda
@@ -147,7 +151,7 @@ def optimize(method, expr, symbols, x0, max_iter, tol, alpha_wolfe, beta_wolfe, 
             pk = -grad
             
         elif method == "Gradiente Conjugado":
-            if k == 1:
+            if k == 1 or n == 1:
                 pk = -grad
             else:
                 # Recuperar el gradiente de la iteración previa
@@ -170,19 +174,31 @@ def optimize(method, expr, symbols, x0, max_iter, tol, alpha_wolfe, beta_wolfe, 
                     pk = -grad
                     
         elif method == "Newton":
-            hess = get_hessian(expr, symbols, x)
-            try:
-                # Intentar resolver el sistema lineal para la dirección H * pk = -g
-                pk = np.linalg.solve(hess, -grad)
-                # Garantizar descenso si no es definida positiva
-                if np.dot(pk, grad) >= 0:
+            if n == 1:
+                # Caso unidimensional sencillo
+                hess = get_hessian(expr, symbols, x)
+                if abs(hess[0, 0]) > 1e-15:
+                    pk = -grad / hess[0, 0]
+                else:
                     pk = -grad
-            except np.linalg.LinAlgError:
-                # Fallback seguro a descenso de gradiente si la Hessiana es singular o indefinida
-                pk = -grad
+            else:
+                hess = get_hessian(expr, symbols, x)
+                try:
+                    # Intentar resolver el sistema lineal para la dirección H * pk = -g
+                    pk = np.linalg.solve(hess, -grad)
+                    # Garantizar descenso si no es definida positiva
+                    if np.dot(pk, grad) >= 0:
+                        pk = -grad
+                except np.linalg.LinAlgError:
+                    # Fallback seguro a descenso de gradiente si la Hessiana es singular o indefinida
+                    pk = -grad
         
-        # Búsqueda de línea con Condiciones de Wolfe pasándole el paso inicial y parámetros α y β
-        t = line_search_wolfe(expr, symbols, x, pk, alpha_wolfe, beta_wolfe, init_t)
+        # Selección del Tamaño de Paso (t o alpha)
+        if step_type == "Paso Fijo (Dado por usuario)":
+            t = fixed_alpha
+        else:
+            # Búsqueda de línea con Condiciones de Wolfe pasándole el paso inicial y parámetros α y β
+            t = line_search_wolfe(expr, symbols, x, pk, alpha_wolfe, beta_wolfe, init_t)
         
         # Actualización de la posición usando el tamaño de paso t
         x_next = x + t * pk
@@ -207,36 +223,91 @@ def optimize(method, expr, symbols, x0, max_iter, tol, alpha_wolfe, beta_wolfe, 
 st.title("🧮 Optimizador Multivariable")
 st.write(f"¡Hola **{st.session_state.username}**! Configura los parámetros en el panel izquierdo y haz clic en 'Ejecutar Optimización'.")
 
+# Botón de simulación del ejemplo de clase (Preset)
+st.markdown("---")
+col_sim_btn, _ = st.columns([2, 2])
+with col_sim_btn:
+    st.subheader("💡 Simulador de Ejemplo del Profesor")
+    if st.button("📝 Cargar Ejemplo de Diapositiva: f(x1) = x1^2", use_container_width=True, type="secondary"):
+        st.session_state["num_vars"] = 1
+        st.session_state["method"] = "Descenso de Gradiente"
+        st.session_state["func_str"] = "x1^2"
+        st.session_state["x0_val"] = -1.5
+        st.session_state["step_type"] = "Paso Fijo (Dado por usuario)"
+        st.session_state["fixed_alpha"] = 0.3
+        st.session_state["max_iter"] = 15
+        st.toast("¡Ejemplo cargado con Paso Fijo (alpha = 0.3)! Presiona 'Ejecutar Optimización' en la barra lateral.", icon="🎯")
+
 # Panel lateral con todas las opciones solicitadas por tu profesor
 st.sidebar.header("⚙️ Parámetros de Entrada")
 
-num_vars = st.sidebar.number_input("Número de variables (N)", min_value=1, max_value=10, value=2, step=1)
-method = st.sidebar.selectbox("Método de optimización", ["Descenso de Gradiente", "Gradiente Conjugado", "Newton"])
+# Manejo de estados de sesión para el cargador dinámico
+def_num_vars = st.session_state.get("num_vars", 2)
+def_method = st.session_state.get("method", "Descenso de Gradiente")
+def_func_str = st.session_state.get("func_str", "100*(x2 - x1^2)^2 + (1 - x1)^2")
+def_step_type = st.session_state.get("step_type", "Búsqueda de línea (Wolfe)")
+def_fixed_alpha = st.session_state.get("fixed_alpha", 0.3)
+def_init_t = st.session_state.get("init_t", 1.0)
+def_alpha_wolfe = st.session_state.get("alpha_wolfe", 1e-4)
+def_beta_wolfe = st.session_state.get("beta_wolfe", 0.9 if def_method != "Newton" else 0.1)
+def_max_iter = st.session_state.get("max_iter", 200)
+
+num_vars = st.sidebar.number_input("Número de variables (N)", min_value=1, max_value=10, value=int(def_num_vars), step=1, key="num_vars_input")
+method = st.sidebar.selectbox("Método de optimización", ["Descenso de Gradiente", "Gradiente Conjugado", "Newton"], index=["Descenso de Gradiente", "Gradiente Conjugado", "Newton"].index(def_method), key="method_input")
 
 # Mensaje estático indicando el uso de Fletcher-Reeves cuando se selecciona Gradiente Conjugado
 if method == "Gradiente Conjugado":
     st.sidebar.info("Gradiente Conjugado implementado con la fórmula clásica de **Fletcher-Reeves**.")
 
-func_str = st.sidebar.text_input("Función objetivo f(x)", value="100*(x2 - x1^2)^2 + (1 - x1)^2")
+func_str = st.sidebar.text_input("Función objetivo f(x)", value=def_func_str, key="func_str_input")
 
 # Generar puntos de partida dinámicos para N variables
 st.sidebar.markdown("### Punto inicial x0")
 x0 = []
 cols_x0 = st.sidebar.columns(num_vars)
 for i in range(num_vars):
-    val = cols_x0[i].number_input(f"x{i+1}", value=-1.2 if i==0 else 1.0)
+    # Si acabamos de cargar el preset para 1 variable, usamos el valor cargado de x0
+    preset_x0 = st.session_state.get("x0_val", -1.2) if i == 0 else 1.0
+    val = cols_x0[i].number_input(f"x{i+1}", value=float(preset_x0 if i == 0 and num_vars == 1 else (-1.2 if i==0 else 1.0)), key=f"x0_var_{i}")
     x0.append(val)
 
-max_iter = st.sidebar.number_input("Iteraciones máximas", min_value=1, max_value=2000, value=200, step=10)
+max_iter = st.sidebar.number_input("Iteraciones máximas", min_value=1, max_value=2000, value=int(def_max_iter), step=10, key="max_iter_input")
 tol = st.sidebar.number_input("Tolerancia (Convergencia)", value=1e-5, format="%.2e")
 
-st.sidebar.markdown("### 🔍 Parámetros de Wolfe")
-# Parámetro de Paso Inicial t0
-init_t = st.sidebar.number_input("Paso inicial (t₀)", min_value=1e-4, max_value=100.0, value=1.0, step=0.1, format="%.4f")
-# Parámetro Alpha (α) para la primera condición (Armijo)
-alpha_wolfe = st.sidebar.slider("α (Armijo - Primera condición)", min_value=1e-5, max_value=1e-1, value=1e-4, format="%.5f")
-# Parámetro Beta (β) para la segunda condición (Curvatura)
-beta_wolfe = st.sidebar.slider("β (Curvatura - Segunda condición)", min_value=1e-2, max_value=0.99, value=0.9 if method != "Newton" else 0.1)
+# === NUEVA SECCIÓN: SELECCIÓN DEL TIPO DE PASO ===
+st.sidebar.markdown("### 🗺️ Configuración del Paso")
+step_type = st.sidebar.selectbox(
+    "Tipo de paso (Alpha)", 
+    ["Búsqueda de línea (Wolfe)", "Paso Fijo (Dado por usuario)"], 
+    index=["Búsqueda de línea (Wolfe)", "Paso Fijo (Dado por usuario)"].index(def_step_type),
+    key="step_type_input"
+)
+
+# Renderizar controles de paso dinámicamente según la elección
+fixed_alpha = def_fixed_alpha
+init_t = def_init_t
+alpha_wolfe = def_alpha_wolfe
+beta_wolfe = def_beta_wolfe
+
+if step_type == "Paso Fijo (Dado por usuario)":
+    fixed_alpha = st.sidebar.number_input(
+        "Tamaño de paso fijo (α)", 
+        min_value=1e-5, 
+        max_value=100.0, 
+        value=float(def_fixed_alpha), 
+        step=0.05, 
+        format="%.5f",
+        key="fixed_alpha_input"
+    )
+    st.sidebar.caption("⚠️ Las condiciones de Wolfe están desactivadas. El valor de α ingresado se usará directamente.")
+else:
+    st.sidebar.markdown("**Parámetros de Wolfe:**")
+    # Paso Inicial t0 para el backtracking
+    init_t = st.sidebar.number_input("Paso inicial de búsqueda (t₀)", min_value=1e-4, max_value=100.0, value=float(def_init_t), step=0.1, format="%.4f", key="init_t_input")
+    # Parámetro Alpha (α) para la primera condición (Armijo)
+    alpha_wolfe = st.sidebar.slider("α (Armijo - Primera condición)", min_value=1e-5, max_value=1e-1, value=float(def_alpha_wolfe), format="%.5f", key="alpha_wolfe_input")
+    # Parámetro Beta (β) para la segunda condición (Curvatura)
+    beta_wolfe = st.sidebar.slider("β (Curvatura - Segunda condición)", min_value=1e-2, max_value=0.99, value=float(def_beta_wolfe), format="%.5f", key="beta_wolfe_input")
 
 # Botón para iniciar los cálculos
 if st.sidebar.button("🚀 Ejecutar Optimización", type="primary", use_container_width=True):
@@ -246,9 +317,9 @@ if st.sidebar.button("🚀 Ejecutar Optimización", type="primary", use_containe
         
         st.info("Calculando optimización... por favor espera.")
         
-        # Ejecutar el cálculo en segundo plano con los parámetros α, β y t0 actualizados
+        # Ejecutar el cálculo en segundo plano con las variables configuradas
         x_min, f_min, total_iter, final_err, history, path = optimize(
-            method, expr, symbols, x0, max_iter, tol, alpha_wolfe, beta_wolfe, init_t
+            method, expr, symbols, x0, max_iter, tol, step_type, fixed_alpha, alpha_wolfe, beta_wolfe, init_t
         )
         
         st.success("¡Optimización completada con éxito!")
@@ -266,7 +337,7 @@ if st.sidebar.button("🚀 Ejecutar Optimización", type="primary", use_containe
         st.table(pd.DataFrame(pt_dict))
         
         # PESTAÑAS DE VISUALIZACIÓN DE DATOS (Convergencia, Tabla y Gráficas Espaciales)
-        tab1, tab2, tab3 = st.tabs(["📉 Convergencia", "📊 Tabla de Iteraciones", "🗺️ Análisis Espacial (2D/3D)"])
+        tab1, tab2, tab3 = st.tabs(["📉 Convergencia", "📊 Tabla de Iteraciones", "🗺️ Análisis Espacial (1D/2D/3D)"])
         
         with tab1:
             st.subheader("Gráfico de Convergencia")
@@ -293,15 +364,52 @@ if st.sidebar.button("🚀 Ejecutar Optimización", type="primary", use_containe
                     "Punto x(k)": [round(val, 6) for val in h[1]],
                     "f(x)": h[2],
                     "||∇f(x)|| (Error)": h[3],
-                    "Paso (t)": h[4]
+                    "Paso tomado": h[4]
                 }
                 rows.append(row)
             df_hist = pd.DataFrame(rows)
             st.dataframe(df_hist, use_container_width=True)
             
         with tab3:
-            # Gráficos de curvas de nivel y 3D (disponibles solo para optimizaciones en 2D)
-            if num_vars == 2:
+            # Gráficos dinámicos basados en la dimensionalidad del problema
+            if num_vars == 1:
+                st.subheader("Visualización del Descenso en 1 Variable (Caso Unidimensional)")
+                
+                xs_path = path[:, 0]
+                
+                # Determinar rango de la curva
+                margin = max((xs_path.max() - xs_path.min()) * 0.4, 1.0)
+                x_curve = np.linspace(xs_path.min() - margin, xs_path.max() + margin, 300)
+                y_curve = [evaluate_func(expr, symbols, [xc]) for xc in x_curve]
+                
+                # Evaluar la trayectoria real de f(x)
+                y_path = [evaluate_func(expr, symbols, [xval]) for xval in xs_path]
+                
+                fig_1d, ax_1d = plt.subplots(figsize=(10, 5))
+                ax_1d.plot(x_curve, y_curve, color="#E11D48", linewidth=2, label=f"f(x1) = {func_str}")
+                
+                # Trayectoria de descenso (Puntos y flechas)
+                ax_1d.plot(xs_path, y_path, color="#1E293B", linestyle=":", linewidth=1)
+                ax_1d.scatter(xs_path, y_path, color="#4F46E5", s=40, zorder=5, label="Iteraciones (xk)")
+                
+                # Destacar puntos especiales
+                ax_1d.scatter(x0[0], evaluate_func(expr, symbols, x0), color='blue', s=80, zorder=6, label=f'Inicio (x0 = {x0[0]})')
+                ax_1d.scatter(x_min[0], f_min, color='gold', marker='*', s=200, zorder=6, label=f'Mínimo (x* = {x_min[0]:.4f})')
+                
+                # Flechas de dirección de descenso para que se vea claro el camino
+                for i in range(len(xs_path)-1):
+                    ax_1d.annotate('', xy=(xs_path[i+1], y_path[i+1]), xytext=(xs_path[i], y_path[i]),
+                                   arrowprops=dict(arrowstyle="->", color="#4F46E5", lw=1.5, alpha=0.7))
+                
+                ax_1d.set_title(f"Optimización en Directo de {func_str}", fontsize=12, fontweight='bold')
+                ax_1d.set_xlabel("x1", fontsize=11)
+                ax_1d.set_ylabel("f(x1)", fontsize=11)
+                ax_1d.grid(True, linestyle=":", alpha=0.6)
+                ax_1d.legend()
+                
+                st.pyplot(fig_1d)
+                
+            elif num_vars == 2:
                 st.subheader("Representación Topográfica y de Superficie")
                 
                 xs = path[:, 0]
@@ -347,7 +455,7 @@ if st.sidebar.button("🚀 Ejecutar Optimización", type="primary", use_containe
                 
                 st.pyplot(fig_spatial)
             else:
-                st.info("Las visualizaciones espaciales 2D/3D están limitadas exclusivamente para funciones de 2 variables.")
+                st.info("Las visualizaciones espaciales 2D/3D están limitadas exclusivamente para funciones de 1 o 2 variables.")
                 
     except Exception as e:
         st.error(f"Ocurrió un error en la evaluación matemática o computacional: {e}")
