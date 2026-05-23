@@ -294,10 +294,18 @@ def show_config_page():
         tol = st.number_input("Tolerancia de convergencia", min_value=1e-10, max_value=1.0, value=1e-6, format="%.6f")
         
     with col2:
-        st.header("Condiciones de Wolfe")
+        st.header("Parámetros de Paso")
         alpha_init = st.number_input("Alfa inicial (Tamaño de paso)", min_value=0.01, max_value=10.0, value=1.0)
-        c1 = st.slider("Rho (Armijo / Wolfe 1)", min_value=0.0001, max_value=0.5, value=1e-4, format="%.4f")
-        c2 = st.slider("Theta (Curvatura / Wolfe 2)", min_value=c1, max_value=0.99, value=0.9, format="%.4f")
+        
+        if method == "Gradiente (Steepest Descent)":
+            # Valores por defecto internos para que la función de Wolfe siga funcionando
+            c1 = 0.0001
+            c2 = 0.9000
+            st.info("ℹ️ Interfaz simplificada: Para el Método del Gradiente solo se muestra el Alfa. Las condiciones de Wolfe siguen operando internamente con valores por defecto (Rho=0.0001, Theta=0.9).")
+        else:
+            st.markdown("#### Condiciones de Wolfe")
+            c1 = st.slider("Rho (Armijo / Wolfe 1)", min_value=0.0001, max_value=0.5, value=1e-4, format="%.4f")
+            c2 = st.slider("Theta (Curvatura / Wolfe 2)", min_value=c1, max_value=0.99, value=0.9, format="%.4f")
 
     st.divider()
     st.header("📝 Definición de la Función")
