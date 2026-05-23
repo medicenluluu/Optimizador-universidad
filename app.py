@@ -5,14 +5,14 @@ import matplotlib.pyplot as plt
 import sympy as sp
 import re
 
+# Configuración inicial de la página
 st.set_page_config(page_title="Optimizador Web", layout="wide")
 
+# --- Funciones de Procesamiento ---
 def parse_function(func_str, variables):
-    """Convierte un string a una función simbólica con soporte para multiplicación implícita."""
     try:
-        # Reemplazar '^' por '**'
         func_str = func_str.replace('^', '**')
-        # Insertar * entre número y variable (ej: 3x1 -> 3*x1)
+        # Soporte para multiplicación implícita (ej: 3x1 -> 3*x1)
         func_str = re.sub(r'(\d)([a-zA-Z])', r'\1*\2', func_str)
         return sp.sympify(func_str)
     except Exception:
@@ -20,10 +20,6 @@ def parse_function(func_str, variables):
 
 def compute_gradient(expr, variables):
     return [sp.diff(expr, var) for var in variables]
-
-def compute_hessian(expr, variables):
-    n = len(variables)
-    return sp.Matrix(n, n, lambda i, j: sp.diff(sp.diff(expr, variables[i]), variables[j]))
 
 def evaluate_func(expr, variables, point):
     subs = {var: val for var, val in zip(variables, point)}
@@ -33,60 +29,65 @@ def evaluate_grad(grad_exprs, variables, point):
     subs = {var: val for var, val in zip(variables, point)}
     return np.array([float(g.subs(subs)) for g in grad_exprs])
 
-def evaluate_hessian(hessian_expr, variables, point):
-    subs = {var: val for var, val in zip(variables, point)}
-    return np.array(hessian_expr.subs(subs)).astype(np.float64)
-
-def optimize_gradient_descent(expr, vars_sym, x0, tol, max_iter, alpha_init):
-    """Método del Gradiente con PASO FIJO."""
+# --- Método del Gradiente (Paso Fijo) ---
+def optimize_gradient_descent(expr, vars_sym, x0, tol, max_iter, alpha):
     grad_exprs = compute_gradient(expr, vars_sym)
-    
     x = np.array(x0, dtype=float)
-    history = []
+    history = [(x.copy(), evaluate_func(expr, vars_sym, x))]
     errors = []
     
-    f_val = evaluate_func(expr, vars_sym, x)
-    g_val = evaluate_grad(grad_exprs, vars_sym, x)
-    error = np.linalg.norm(g_val)
-    
-    history.append((x.copy(), f_val))
-    errors.append(error)
-    
-    iteration = 0
-    while error > tol and iteration < max_iter:
-        # Dirección de máximo descenso
-        p = -g_val 
-        
-        # PASO FIJO: Se usa alpha_init directamente
-        x = x + alpha_init * p
-        
-        f_val = evaluate_func(expr, vars_sym, x)
+    for _ in range(max_iter):
         g_val = evaluate_grad(grad_exprs, vars_sym, x)
         error = np.linalg.norm(g_val)
-        
-        history.append((x.copy(), f_val))
         errors.append(error)
-        iteration += 1
         
-    return x, f_val, iteration, error, history, errors
+        if error < tol:
+            break
+            
+        x = x - alpha * g_val # Paso fijo: x = x - alpha * gradiente
+        history.append((x.copy(), evaluate_func(expr, vars_sym, x)))
+        
+    return x, evaluate_func(expr, vars_sym, x), len(history), errors[-1] if errors else 0, history, errors
 
-# --- Resto de las funciones (Conjugado/Newton/Interfaz) ---
-# Nota: Debes actualizar la llamada en show_results_page para no pasar c1 y c2 a esta función
-# Ejemplo: res_x, ... = optimize_gradient_descent(cfg['expr'], cfg['vars_sym'], cfg['x0'], cfg['tol'], cfg['max_iter'], cfg['alpha_init'])
+# --- Interfaz de Usuario ---
+def main():
+    if 'page' not in st.session_state: st.session_state.page = "config"
+    
+    st.title("🚀 Optimizador Matemático (Paso Fijo)")
+    
+    with st.sidebar:
+        st.header("Configuración")
+        method = st.selectbox("Método", ["Gradiente (Paso Fijo)"])
+        alpha = st.number_input("Tamaño de paso (α)", value=0.01, format="%.4f")
+        max_iter = st.number_input("Iteraciones", value=100)
+        tol = st.number_input("Tolerancia", value=1e-6, format="%.6f")
 
-def init_session_state():
-    if 'page' not in st.session_state: st.session_state.page = "login"
-    if 'score' not in st.session_state: st.session_state.score = 0
-    if 'user_name' not in st.session_state: st.session_state.user_name = ""
-    if 'run_completed' not in st.session_state: st.session_state.run_completed = False
+    func_input = st.text_input("Función f(x1, x2)", value="x1^2 + x2^2")
+    start_point = st.text_input("Punto inicial (x1, x2)", value="1.0, 1.0")
 
-def show_results_page():
-    cfg = st.session_state.config
-    # ... (Tu lógica de visualización aquí)
-    if not st.session_state.run_completed:
-        if cfg['method'] == "Gradiente (Steepest Descent)":
-            # Llamada corregida sin c1 y c2
-            res_x, res_f, res_iter, res_err, history, errors = optimize_gradient_descent(
-                cfg['expr'], cfg['vars_sym'], cfg['x0'], cfg['tol'], cfg['max_iter'], cfg['alpha_init']
+    if st.button("Ejecutar Optimización"):
+        vars_sym = sp.symbols('x1 x2')
+        expr = parse_function(func_input, vars_sym)
+        x0 = [float(i) for i in start_point.split(',')]
+        
+        if expr:
+            res_x, res_f, res_iter, res_err, _, errors = optimize_gradient_descent(
+                expr, vars_sym, x0, tol, max_iter, alpha
             )
-        # ... resto del código ...
+            
+            st.success("¡Cálculo finalizado!")
+            st.write(f"**Mínimo en:** {res_x}")
+            st.write(f"**Valor de la función:** {res_f}")
+            
+            # Gráfica
+            fig, ax = plt.subplots()
+            ax.plot(errors)
+            ax.set_yscale('log')
+            ax.set_xlabel("Iteración")
+            ax.set_ylabel("Norma del Gradiente")
+            st.pyplot(fig)
+        else:
+            st.error("Error en la sintaxis de la función.")
+
+if __name__ == "__main__":
+    main()
