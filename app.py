@@ -229,9 +229,32 @@ def optimize_newton(expr, vars_sym, x0, tol, max_iter, alpha_init, c1, c2):
         
     return x, f_val, iteration, error, history, errors
 
+def init_session_state():
+    """Inicializa las variables de estado si no existen."""
+    if 'page' not in st.session_state:
+        st.session_state.page = "login"
+    if 'score' not in st.session_state:
+        st.session_state.score = 0
+    if 'user_name' not in st.session_state:
+        st.session_state.user_name = ""
+    if 'run_completed' not in st.session_state:
+        st.session_state.run_completed = False
+
+def show_sidebar():
+    """Muestra la barra lateral compartida entre las páginas de Configuración y Resultados."""
+    with st.sidebar:
+        st.header("👤 Perfil de Usuario")
+        st.success(f"¡Hola, {st.session_state.user_name}!")
+        st.metric(label="🌟 Puntos Acumulados", value=st.session_state.score)
+        
+        if st.button("🚪 Cambiar de Usuario", use_container_width=True):
+            st.session_state.page = "login"
+            st.session_state.user_name = ""
+            st.session_state.score = 0
+            st.rerun()
+
 def show_login_page():
-    """Muestra la página inicial para solicitar el nombre de usuario."""
-    # Centramos el contenido de la página de inicio
+    """Página 1: Solicitar nombre de usuario."""
     col1, col2, col3 = st.columns([1, 2, 1])
     
     with col2:
@@ -239,7 +262,6 @@ def show_login_page():
         st.markdown("### Métodos Avanzados con Condiciones de Wolfe")
         st.write("Para comenzar a optimizar y acumular puntos, por favor identifícate.")
         
-        # Usamos un formulario para que el usuario pueda presionar 'Enter' para enviar
         with st.form("login_form"):
             name_input = st.text_input("Ingresa tu nombre para comenzar:", max_chars=50)
             submit_button = st.form_submit_button("Entrar a la Aplicación", type="primary")
@@ -249,82 +271,63 @@ def show_login_page():
                     st.warning("⚠️ Debes ingresar un nombre para continuar.")
                 else:
                     st.session_state.user_name = name_input.strip()
-                    st.session_state.page = "app"
-                    st.rerun() # Recarga la app para cambiar de vista
+                    st.session_state.page = "config"  # Avanza a la página 2
+                    st.rerun()
 
-def show_app_page():
-    """Muestra la aplicación principal de optimización."""
-    st.title("🚀 Optimizador Matemático Avanzado")
-    st.markdown("Encuentra el mínimo de funciones multidimensionales utilizando métodos avanzados con condiciones de Wolfe.")
+def show_config_page():
+    """Página 2: Configuración del método y la función."""
+    st.title("⚙️ Paso 1: Configuración del Problema")
+    st.markdown("Define las reglas de optimización, el método y la función a evaluar.")
     
-    with st.sidebar:
-        st.header("👤 Perfil de Usuario")
-        st.success(f"¡Hola, {st.session_state.user_name}! Listo para optimizar.")
-        st.metric(label="🌟 Puntos Acumulados", value=st.session_state.score)
-        
-        # Botón para cerrar sesión / volver a la página de inicio
-        if st.button("🚪 Cambiar de Usuario", use_container_width=True):
-            st.session_state.page = "login"
-            st.session_state.user_name = ""
-            st.session_state.score = 0
-            st.rerun()
-            
-        st.divider()
-
-        # --- PARÁMETROS DE ENTRADA ---
-        st.header("⚙️ Configuración")
-        
+    show_sidebar()
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.header("Parámetros del Algoritmo")
         num_vars = st.number_input("Número de variables (n)", min_value=1, max_value=5, value=2)
-        
         method = st.selectbox(
             "Método de Optimización",
             ("Gradiente (Steepest Descent)", "Gradiente Conjugado", "Newton")
         )
-        
-        st.divider()
-        st.subheader("Parámetros del Algoritmo")
         max_iter = st.number_input("Número máximo de iteraciones", min_value=10, max_value=10000, value=100)
         tol = st.number_input("Tolerancia de convergencia", min_value=1e-10, max_value=1.0, value=1e-6, format="%.6f")
         
-        st.divider()
-        st.subheader("Condiciones de Wolfe")
-        st.markdown("Ajusta los parámetros de búsqueda de línea.")
+    with col2:
+        st.header("Condiciones de Wolfe")
         alpha_init = st.number_input("Alfa inicial (Tamaño de paso)", min_value=0.01, max_value=10.0, value=1.0)
         c1 = st.slider("Rho (Armijo / Wolfe 1)", min_value=0.0001, max_value=0.5, value=1e-4, format="%.4f")
-        # c2 debe ser mayor que c1 y menor que 1
         c2 = st.slider("Theta (Curvatura / Wolfe 2)", min_value=c1, max_value=0.99, value=0.9, format="%.4f")
 
-    # --- ÁREA PRINCIPAL ---
-    # Variables simbólicas basadas en n
+    st.divider()
+    st.header("📝 Definición de la Función")
+    
+    # Variables simbólicas para la interfaz
     var_names = [f'x{i+1}' for i in range(num_vars)]
     vars_sym = sp.symbols(' '.join(var_names))
     if num_vars == 1:
-        vars_sym = (vars_sym,) # Asegurar que sea tupla si es 1 var
+        vars_sym = (vars_sym,)
 
-    st.subheader("📝 Definición del Problema")
     st.markdown(f"**Variables disponibles:** `{'`, `'.join(var_names)}`")
     
     col_func, col_start = st.columns([2, 1])
     with col_func:
         func_input = st.text_input(
             "Función Objetivo f(x)", 
-            value="100*(x2 - x1^2)^2 + (1 - x1)^2" if num_vars == 2 else "+".join([f"{v}^2" for v in var_names]),
-            help="Usa sintaxis matemática estándar. Ejemplo: x1^2 + sin(x2)"
+            value="100*(x2 - x1^2)^2 + (1 - x1)^2" if num_vars == 2 else "+".join([f"{v}^2" for v in var_names])
         )
     
     with col_start:
-        st.markdown("**Punto de Partida (separado por comas)**")
-        start_point_str = st.text_input(f"x0 ∈ ℝ^{num_vars}", value="-1.2, 1.0" if num_vars==2 else ",".join(["1.0"]*num_vars))
+        start_point_str = st.text_input(f"x0 ∈ ℝ^{num_vars} (separado por comas)", value="-1.2, 1.0" if num_vars==2 else ",".join(["1.0"]*num_vars))
     
-    # Botón de ejecución
-    if st.button("🚀 Iniciar Optimización", type="primary", use_container_width=True):
-        # 1. Parsear función
+    if st.button("✅ Validar y Ejecutar Cálculos", type="primary", use_container_width=True):
+        # 1. Validar la función
         expr = parse_function(func_input, vars_sym)
         if expr is None:
             st.error("❌ Error al procesar la función. Revisa la sintaxis matemática.")
             return
             
-        # 2. Parsear punto inicial
+        # 2. Validar el punto inicial
         try:
             x0 = [float(x.strip()) for x in start_point_str.split(',')]
             if len(x0) != num_vars:
@@ -334,85 +337,121 @@ def show_app_page():
             st.error("❌ Formato de punto de partida inválido. Usa números separados por comas.")
             return
 
-        # --- VALOR AGREGADO: Puntaje por función válida ---
-        st.session_state.score += 10
-        st.success("✅ Función válida. ¡+10 Puntos!")
+        # --- ÉXITO --- Guardar configuraciones en el estado y avanzar
+        st.session_state.config = {
+            'num_vars': num_vars, 'method': method, 'max_iter': max_iter,
+            'tol': tol, 'alpha_init': alpha_init, 'c1': c1, 'c2': c2,
+            'func_input': func_input, 'expr': expr, 'vars_sym': vars_sym,
+            'x0': x0, 'var_names': var_names
+        }
+        
+        st.session_state.score += 10 # Bono por una ecuación correcta
+        st.session_state.run_completed = False # Reiniciar bandera de cálculo
+        st.session_state.page = "results"      # Avanzar a la página 3
+        st.rerun()
 
-        # 3. Ejecutar Optimización
-        with st.spinner(f"Ejecutando método de {method}..."):
-            if method == "Gradiente (Steepest Descent)":
+def show_results_page():
+    """Página 3: Ejecución de los cálculos y presentación de resultados."""
+    st.title("🚀 Paso 2: Resultados de la Optimización")
+    show_sidebar()
+    
+    # Botón de regreso rápido
+    if st.button("⬅️ Volver a Configurar Parámetros"):
+        st.session_state.page = "config"
+        st.rerun()
+        
+    cfg = st.session_state.config
+    
+    st.subheader("📋 Resumen del Problema")
+    st.write(f"**Método:** {cfg['method']} | **Tolerancia:** {cfg['tol']} | **Iteraciones Máximas:** {cfg['max_iter']}")
+    st.write(f"**Función:** f(x) = {cfg['func_input']}")
+    st.write(f"**Punto de Partida:** x0 = {cfg['x0']}")
+    st.divider()
+    
+    # --- EJECUTAR CÁLCULO SOLO LA PRIMERA VEZ ---
+    if not st.session_state.run_completed:
+        with st.spinner(f"Ejecutando método: {cfg['method']}..."):
+            if cfg['method'] == "Gradiente (Steepest Descent)":
                 res_x, res_f, res_iter, res_err, history, errors = optimize_gradient_descent(
-                    expr, vars_sym, x0, tol, max_iter, alpha_init, c1, c2
+                    cfg['expr'], cfg['vars_sym'], cfg['x0'], cfg['tol'], cfg['max_iter'], cfg['alpha_init'], cfg['c1'], cfg['c2']
                 )
-            elif method == "Gradiente Conjugado":
+            elif cfg['method'] == "Gradiente Conjugado":
                  res_x, res_f, res_iter, res_err, history, errors = optimize_conjugate_gradient(
-                    expr, vars_sym, x0, tol, max_iter, alpha_init, c1, c2
+                    cfg['expr'], cfg['vars_sym'], cfg['x0'], cfg['tol'], cfg['max_iter'], cfg['alpha_init'], cfg['c1'], cfg['c2']
                 )
             else: # Newton
                  res_x, res_f, res_iter, res_err, history, errors = optimize_newton(
-                    expr, vars_sym, x0, tol, max_iter, alpha_init, c1, c2
+                    cfg['expr'], cfg['vars_sym'], cfg['x0'], cfg['tol'], cfg['max_iter'], cfg['alpha_init'], cfg['c1'], cfg['c2']
                 )
+            
+            # Guardamos la data del resultado en memoria para que no se pierda al rotar pantalla o refrescar
+            st.session_state.results_data = {
+                'res_x': res_x, 'res_f': res_f, 'res_iter': res_iter, 
+                'res_err': res_err, 'errors': errors
+            }
+            
+            # Revisar si convergió para dar más puntos (sólo la primera vez que se calcula esta config)
+            if res_err <= cfg['tol']:
+                st.session_state.score += 50
+                st.session_state.converged_this_run = True
+            else:
+                st.session_state.converged_this_run = False
+                
+            st.session_state.run_completed = True
+            st.rerun() # Disparar renderizado limpio tras calcular todo
+            
+    # --- MOSTRAR RESULTADOS ---
+    res = st.session_state.results_data
+    
+    # Notificaciones de logro
+    if st.session_state.converged_this_run:
+        st.success(f"✅ ¡Convergencia exitosa! Criterio de parada alcanzado. ¡+50 Puntos para {st.session_state.user_name}!")
+        st.balloons()
+        # Apagamos la bandera para que no siga mostrando globos si interactúa con algo más en la pantalla
+        st.session_state.converged_this_run = False 
+    elif res['res_err'] > cfg['tol']:
+        st.warning("⚠️ Se alcanzó el número máximo de iteraciones sin lograr la tolerancia deseada.")
 
-        # --- RESULTADOS ---
-        st.divider()
-        st.header("📊 Resultados de la Optimización")
-        
-        # Métricas principales
-        col1, col2, col3 = st.columns(3)
-        col1.metric("Iteraciones Realizadas", res_iter)
-        col2.metric("Valor Mínimo f(x*)", f"{res_f:.6e}")
-        col3.metric("Error Final ||∇f||", f"{res_err:.6e}")
-        
-        # Punto mínimo encontrado
-        st.subheader("📍 Punto Mínimo Encontrado (x*)")
-        formatted_x = [f"{var_names[i]} = {val:.6f}" for i, val in enumerate(res_x)]
-        st.code("\n".join(formatted_x), language="text")
-        
-        # Gráfico de Convergencia
-        st.subheader("📉 Gráfico de Convergencia")
-        
-        # Utilizamos pandas para estructurar los datos del gráfico
-        df_errors = pd.DataFrame({
-            'Iteración': range(len(errors)), 
-            'Error': errors
-        })
-        
-        # Creamos el gráfico con matplotlib
-        fig, ax = plt.subplots(figsize=(10, 6))
-        ax.plot(df_errors['Iteración'], df_errors['Error'], marker='o', linestyle='-', color='#1f77b4', label='Error (Norma del Gradiente)')
-        
-        ax.set_title("Error vs Número de Iteraciones", fontsize=14)
-        ax.set_xlabel("Iteración (k)", fontsize=12)
-        ax.set_ylabel("Error ||∇f(x_k)||", fontsize=12)
-        ax.set_yscale("log") # Escala logarítmica para ver la convergencia
-        ax.grid(True, which="both", ls="--", alpha=0.6)
-        ax.legend()
-        
-        # Mostramos el gráfico de matplotlib en Streamlit
-        st.pyplot(fig)
-
-        # Si convergió, dar más puntos
-        if res_err <= tol:
-            st.session_state.score += 50
-            st.balloons()
-            st.success(f"¡Convergencia exitosa! Criterio de parada alcanzado. ¡+50 Puntos para {st.session_state.user_name}!")
-        else:
-            st.warning("Se alcanzó el número máximo de iteraciones sin lograr la tolerancia deseada.")
+    st.header("📊 Métricas de Salida")
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Iteraciones Realizadas", res['res_iter'])
+    col2.metric("Valor Mínimo f(x*)", f"{res['res_f']:.6e}")
+    col3.metric("Error Final ||∇f||", f"{res['res_err']:.6e}")
+    
+    st.subheader("📍 Punto Mínimo Encontrado (x*)")
+    formatted_x = [f"{cfg['var_names'][i]} = {val:.6f}" for i, val in enumerate(res['res_x'])]
+    st.code("\n".join(formatted_x), language="text")
+    
+    # Gráfico de Convergencia
+    st.subheader("📉 Gráfico de Convergencia")
+    df_errors = pd.DataFrame({
+        'Iteración': range(len(res['errors'])), 
+        'Error': res['errors']
+    })
+    
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.plot(df_errors['Iteración'], df_errors['Error'], marker='o', linestyle='-', color='#1f77b4', label='Error (Norma del Gradiente)')
+    
+    ax.set_title("Error vs Número de Iteraciones", fontsize=14)
+    ax.set_xlabel("Iteración (k)", fontsize=12)
+    ax.set_ylabel("Error ||∇f(x_k)||", fontsize=12)
+    ax.set_yscale("log")
+    ax.grid(True, which="both", ls="--", alpha=0.6)
+    ax.legend()
+    
+    st.pyplot(fig)
 
 def main():
-    # Inicializar las variables de estado de la sesión si no existen
-    if 'page' not in st.session_state:
-        st.session_state.page = "login"
-    if 'score' not in st.session_state:
-        st.session_state.score = 0
-    if 'user_name' not in st.session_state:
-        st.session_state.user_name = ""
+    # 1. Configurar estado general
+    init_session_state()
 
-    # Sistema de ruteo de páginas basado en el estado
+    # 2. Control de ruteo de las 3 páginas
     if st.session_state.page == "login":
         show_login_page()
-    elif st.session_state.page == "app":
-        show_app_page()
+    elif st.session_state.page == "config":
+        show_config_page()
+    elif st.session_state.page == "results":
+        show_results_page()
 
 if __name__ == "__main__":
     main()
