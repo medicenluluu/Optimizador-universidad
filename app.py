@@ -1,8 +1,8 @@
 import streamlit as st
 import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
 import sympy as sp
-import plotly.graph_objects as go
-import time
 
 st.set_page_config(page_title="Optimizador de Funciones", layout="wide")
 
@@ -326,8 +326,6 @@ def main():
 
         # 3. Ejecutar Optimización
         with st.spinner(f"Ejecutando método de {method}..."):
-            start_time = time.time()
-            
             if method == "Gradiente (Steepest Descent)":
                 res_x, res_f, res_iter, res_err, history, errors = optimize_gradient_descent(
                     expr, vars_sym, x0, tol, max_iter, alpha_init, c1, c2
@@ -340,8 +338,6 @@ def main():
                  res_x, res_f, res_iter, res_err, history, errors = optimize_newton(
                     expr, vars_sym, x0, tol, max_iter, alpha_init, c1, c2
                 )
-                 
-            end_time = time.time()
 
         # --- RESULTADOS ---
         st.divider()
@@ -353,8 +349,6 @@ def main():
         col2.metric("Valor Mínimo f(x*)", f"{res_f:.6e}")
         col3.metric("Error Final ||∇f||", f"{res_err:.6e}")
         
-        st.info(f"⏱️ Tiempo de ejecución: {(end_time - start_time)*1000:.2f} ms")
-        
         # Punto mínimo encontrado
         st.subheader("📍 Punto Mínimo Encontrado (x*)")
         formatted_x = [f"{var_names[i]} = {val:.6f}" for i, val in enumerate(res_x)]
@@ -362,21 +356,26 @@ def main():
         
         # Gráfico de Convergencia
         st.subheader("📉 Gráfico de Convergencia")
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(
-            y=errors,
-            mode='lines+markers',
-            name='Error (Norma del Gradiente)'
-        ))
-        fig.update_layout(
-            title="Error vs Número de Iteraciones",
-            xaxis_title="Iteración (k)",
-            yaxis_title="Error ||∇f(x_k)||",
-            yaxis_type="log", # Escala logarítmica suele ser mejor para ver la convergencia
-            template="plotly_white",
-            hovermode="x unified"
-        )
-        st.plotly_chart(fig, use_container_width=True)
+        
+        # Utilizamos pandas para estructurar los datos del gráfico
+        df_errors = pd.DataFrame({
+            'Iteración': range(len(errors)), 
+            'Error': errors
+        })
+        
+        # Creamos el gráfico con matplotlib
+        fig, ax = plt.subplots(figsize=(10, 6))
+        ax.plot(df_errors['Iteración'], df_errors['Error'], marker='o', linestyle='-', color='#1f77b4', label='Error (Norma del Gradiente)')
+        
+        ax.set_title("Error vs Número de Iteraciones", fontsize=14)
+        ax.set_xlabel("Iteración (k)", fontsize=12)
+        ax.set_ylabel("Error ||∇f(x_k)||", fontsize=12)
+        ax.set_yscale("log") # Escala logarítmica para ver la convergencia
+        ax.grid(True, which="both", ls="--", alpha=0.6)
+        ax.legend()
+        
+        # Mostramos el gráfico de matplotlib en Streamlit
+        st.pyplot(fig)
 
         # Si convergió, dar más puntos
         if res_err <= tol:
