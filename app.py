@@ -4,7 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import sympy as sp
 
-st.set_page_config(page_title="Optimizador de Funciones", layout="wide")
+st.set_page_config(page_title="Optimizador Web", layout="wide")
 
 def parse_function(func_str, variables):
     """Convierte un string a una función simbólica de sympy."""
