@@ -82,17 +82,17 @@ def get_hessian(expr, symbols, point):
 
 # --- BÚSQUEDA DE LÍNEA: CONDICIONES DE WOLFE ---
 
-def line_search_wolfe(expr, symbols, x, pk, alpha_wolfe=1e-4, beta_wolfe=0.9, init_t=1.0, rho_factor=0.5):
+def line_search_wolfe(expr, symbols, x, pk, beta_wolfe=1e-4, theta_wolfe=0.9, init_alpha=1.0, p_backtracking=0.5):
     """
     Búsqueda de línea con Condiciones Fuertes de Wolfe usando Backtracking adaptativo.
     Se utiliza:
-      - alpha_wolfe (α): parámetro de la primera condición (Armijo/suficiente descenso).
-      - beta_wolfe (β): parámetro de la segunda condición (Curvatura fuerte).
-      - t: tamaño de paso (inicia en init_t).
-      - rho_factor: factor de contracción del paso en el backtracking.
+      - alpha (α): tamaño de paso (inicia en init_alpha).
+      - beta_wolfe (β): parámetro de la primera condición (Armijo/suficiente descenso).
+      - theta_wolfe (θ): parámetro de la segunda condición (Curvatura fuerte).
+      - p_backtracking (P): factor de contracción del paso en el backtracking.
     """
-    t = init_t
-    t_min = 1e-10
+    alpha = init_alpha
+    alpha_min = 1e-10
     
     fx = evaluate_func(expr, symbols, x)
     grad_x = get_gradient(expr, symbols, x)
@@ -100,30 +100,30 @@ def line_search_wolfe(expr, symbols, x, pk, alpha_wolfe=1e-4, beta_wolfe=0.9, in
     
     # Si la dirección de búsqueda no es de descenso estricto, evitamos problemas
     if m1 >= 0:
-        return t
+        return alpha
     
     for _ in range(100):
-        x_next = x + t * pk
+        x_next = x + alpha * pk
         fx_next = evaluate_func(expr, symbols, x_next)
         
-        # 1. Primera Condición de Wolfe: Armijo (Suficiente Descenso regulado por alpha_wolfe)
-        if fx_next <= fx + alpha_wolfe * t * m1:
+        # 1. Primera Condición de Wolfe: Armijo (Suficiente Descenso regulado por beta_wolfe)
+        if fx_next <= fx + beta_wolfe * alpha * m1:
             grad_next = get_gradient(expr, symbols, x_next)
             m2 = np.dot(grad_next, pk)
             
-            # 2. Segunda Condición de Wolfe: Curvatura Fuerte (regulada por beta_wolfe)
-            if abs(m2) <= beta_wolfe * abs(m1):
-                return t
+            # 2. Segunda Condición de Wolfe: Curvatura Fuerte (regulada por theta_wolfe)
+            if abs(m2) <= theta_wolfe * abs(m1):
+                return alpha
             
-        t *= rho_factor
-        if t < t_min:
-            return t_min
+        alpha *= p_backtracking
+        if alpha < alpha_min:
+            return alpha_min
             
-    return t
+    return alpha
 
 # --- ALGORITMOS DE OPTIMIZACIÓN ---
 
-def optimize(method, expr, symbols, x0, max_iter, tol, step_type, fixed_alpha, alpha_wolfe, beta_wolfe, init_t=1.0, rho_factor=0.5):
+def optimize(method, expr, symbols, x0, max_iter, tol, step_type, fixed_alpha, beta_wolfe, theta_wolfe, init_alpha=1.0, p_backtracking=0.5):
     x = np.array(x0, dtype=float)
     n = len(x)
     history = []
@@ -133,6 +133,7 @@ def optimize(method, expr, symbols, x0, max_iter, tol, step_type, fixed_alpha, a
     fx = evaluate_func(expr, symbols, x)
     grad = get_gradient(expr, symbols, x)
     err = np.linalg.norm(grad)
+    # Guardamos el gradiente en history (índice 5) para el cálculo de Fletcher-Reeves
     history.append((0, x.copy(), fx, err, 0.0, grad.copy()))
     
     pk = -grad
@@ -178,19 +179,19 @@ def optimize(method, expr, symbols, x0, max_iter, tol, step_type, fixed_alpha, a
                 except np.linalg.LinAlgError:
                     pk = -grad
         
-        # Selección del Tamaño de Paso (t o alpha)
+        # Selección del Tamaño de Paso (alpha)
         if step_type == "Paso Fijo (Dado por usuario)":
-            t = fixed_alpha
+            alpha = fixed_alpha
         else:
-            t = line_search_wolfe(expr, symbols, x, pk, alpha_wolfe, beta_wolfe, init_t, rho_factor)
+            alpha = line_search_wolfe(expr, symbols, x, pk, beta_wolfe, theta_wolfe, init_alpha, p_backtracking)
         
-        # Actualización de la posición usando el tamaño de paso t
-        x_next = x + t * pk
+        # Actualización de la posición usando el tamaño de paso alpha
+        x_next = x + alpha * pk
         fx_next = evaluate_func(expr, symbols, x_next)
         grad_next = get_gradient(expr, symbols, x_next)
         err_next = np.linalg.norm(grad_next)
         
-        history.append((k, x_next.copy(), fx_next, err_next, t, grad_next.copy()))
+        history.append((k, x_next.copy(), fx_next, err_next, alpha, grad_next.copy()))
         path.append(x_next.copy())
         
         x = x_next
@@ -230,10 +231,10 @@ with col_sim_btn2:
         st.session_state["x0_val"] = 0.0  # Para x1
         st.session_state["x2_val"] = 0.0  # Para x2
         st.session_state["step_type"] = "Búsqueda de línea (Wolfe)"
-        st.session_state["init_t"] = 1.0
-        st.session_state["alpha_wolfe"] = 0.1  # Parámetro beta del ejercicio = 0.1
-        st.session_state["beta_wolfe"] = 0.9   # Mantener curvatura relajada
-        st.session_state["rho_factor"] = 0.1   # Factor de contracción rho = 0.1 del ejercicio
+        st.session_state["init_alpha"] = 1.0
+        st.session_state["beta_wolfe"] = 0.1  # Parámetro beta del ejercicio (Armijo) = 0.1
+        st.session_state["theta_wolfe"] = 0.9   # Curvatura
+        st.session_state["p_backtracking"] = 0.1   # Factor de contracción P = 0.1 del ejercicio
         st.session_state["max_iter"] = 5
         st.toast("¡Problema 5 cargado con sus parámetros exactos de backtracking!", icon="🔥")
 
@@ -246,10 +247,10 @@ def_method = st.session_state.get("method", "Descenso de Gradiente")
 def_func_str = st.session_state.get("func_str", "100*(x2 - x1^2)^2 + (1 - x1)^2")
 def_step_type = st.session_state.get("step_type", "Búsqueda de línea (Wolfe)")
 def_fixed_alpha = st.session_state.get("fixed_alpha", 0.3)
-def_init_t = st.session_state.get("init_t", 1.0)
-def_alpha_wolfe = st.session_state.get("alpha_wolfe", 1e-4)
-def_beta_wolfe = st.session_state.get("beta_wolfe", 0.9 if def_method != "Newton" else 0.1)
-def_rho_factor = st.session_state.get("rho_factor", 0.5)
+def_init_alpha = st.session_state.get("init_alpha", 1.0)
+def_beta_wolfe = st.session_state.get("beta_wolfe", 1e-4)
+def_theta_wolfe = st.session_state.get("theta_wolfe", 0.9 if def_method != "Newton" else 0.1)
+def_p_backtracking = st.session_state.get("p_backtracking", 0.5)
 def_max_iter = st.session_state.get("max_iter", 200)
 
 num_vars = st.sidebar.number_input("Número de variables (N)", min_value=1, max_value=10, value=int(def_num_vars), step=1, key="num_vars_input")
@@ -288,10 +289,10 @@ step_type = st.sidebar.selectbox(
 )
 
 fixed_alpha = def_fixed_alpha
-init_t = def_init_t
-alpha_wolfe = def_alpha_wolfe
+init_alpha = def_init_alpha
 beta_wolfe = def_beta_wolfe
-rho_factor = def_rho_factor
+theta_wolfe = def_theta_wolfe
+p_backtracking = def_p_backtracking
 
 if step_type == "Paso Fijo (Dado por usuario)":
     fixed_alpha = st.sidebar.number_input(
@@ -306,10 +307,10 @@ if step_type == "Paso Fijo (Dado por usuario)":
     st.sidebar.caption("⚠️ Las condiciones de Wolfe están desactivadas. El valor de α ingresado se usará directamente.")
 else:
     st.sidebar.markdown("**Parámetros de Wolfe:**")
-    init_t = st.sidebar.number_input("Paso inicial de búsqueda (t₀)", min_value=1e-4, max_value=100.0, value=float(def_init_t), step=0.1, format="%.4f", key="init_t_input")
-    alpha_wolfe = st.sidebar.slider("α (Armijo - Primera condición)", min_value=1e-5, max_value=1.0, value=float(def_alpha_wolfe), format="%.5f", key="alpha_wolfe_input")
-    beta_wolfe = st.sidebar.slider("β (Curvatura - Segunda condición)", min_value=1e-2, max_value=0.99, value=float(def_beta_wolfe), format="%.5f", key="beta_wolfe_input")
-    rho_factor = st.sidebar.slider("ρ (Factor de contracción)", min_value=0.01, max_value=0.99, value=float(def_rho_factor), step=0.05, key="rho_factor_input")
+    init_alpha = st.sidebar.number_input("Paso inicial de búsqueda (α₀)", min_value=1e-4, max_value=100.0, value=float(def_init_alpha), step=0.1, format="%.4f", key="init_alpha_input")
+    beta_wolfe = st.sidebar.slider("β (Descenso suficiente - Primera condición)", min_value=1e-5, max_value=1.0, value=float(def_beta_wolfe), format="%.5f", key="beta_wolfe_input")
+    theta_wolfe = st.sidebar.slider("θ (Curvatura - Segunda condición)", min_value=1e-2, max_value=0.99, value=float(def_theta_wolfe), format="%.5f", key="theta_wolfe_input")
+    p_backtracking = st.sidebar.slider("P (Factor de contracción - Backtracking)", min_value=0.01, max_value=0.99, value=float(def_p_backtracking), step=0.05, key="p_backtracking_input")
 
 # Botón para iniciar los cálculos
 if st.sidebar.button("🚀 Ejecutar Optimización", type="primary", use_container_width=True):
@@ -321,7 +322,7 @@ if st.sidebar.button("🚀 Ejecutar Optimización", type="primary", use_containe
         
         # Ejecutar el cálculo
         x_min, f_min, total_iter, final_err, history, path = optimize(
-            method, expr, symbols, x0, max_iter, tol, step_type, fixed_alpha, alpha_wolfe, beta_wolfe, init_t, rho_factor
+            method, expr, symbols, x0, max_iter, tol, step_type, fixed_alpha, beta_wolfe, theta_wolfe, init_alpha, p_backtracking
         )
         
         st.success("¡Optimización completada con éxito!")
@@ -370,7 +371,7 @@ if st.sidebar.button("🚀 Ejecutar Optimización", type="primary", use_containe
                     "Punto x(k)": [round(val, 6) for val in h[1]],
                     "f(x)": h[2],
                     "||∇f(x)|| (Error)": h[3],
-                    "Paso tomado": h[4]
+                    "Paso tomado (α)": h[4]
                 }
                 rows.append(row)
             df_hist = pd.DataFrame(rows)
@@ -459,7 +460,7 @@ if st.sidebar.button("🚀 Ejecutar Optimización", type="primary", use_containe
             x0_num = np.array(x0, dtype=float)
             
             # --- PARTE A: Gradiente Analítico y Dirección ---
-            st.subheader("Parte (a): Gradiente y Función Unidimensional $\phi(t)$")
+            st.subheader("Parte (a): Gradiente y Función Unidimensional $\phi(\\alpha)$")
             
             # Obtener gradiente analítico simbólico
             grad_sym = [sp.diff(f_sym, sym) for sym in x_sym]
@@ -485,67 +486,67 @@ if st.sidebar.button("🚀 Ejecutar Optimización", type="primary", use_containe
             st.latex(f"\\nabla f(\\mathbf{{x}}^{(0)}) = \\begin{pmatrix} {' \\\\ '.join([f'{val:.4f}' for val in grad_num_x0])} \\end{pmatrix}")
             st.latex(f"\\mathbf{{d}}^{(0)} = -\\nabla f(\\mathbf{{x}}^{(0)}) = \\begin{pmatrix} {' \\\\ '.join([f'{val:.4f}' for val in d_num])} \\end{pmatrix}")
             
-            # Construir simbólicamente la función unidimensional phi(t) = f(x0 + t*d)
-            t_sym = sp.Symbol('t')
-            substitutions = {x_sym[i]: x0_num[i] + t_sym * d_num[i] for i in range(num_vars)}
+            # Construir simbólicamente la función unidimensional phi(alpha) = f(x0 + alpha*d)
+            alpha_sym = sp.Symbol('alpha')
+            substitutions = {x_sym[i]: x0_num[i] + alpha_sym * d_num[i] for i in range(num_vars)}
             phi_sym = f_sym.subs(substitutions).expand()
             
-            st.markdown("#### Expresión de la función unidimensional $\phi(t)$:")
-            st.write("Sustituyendo $\\mathbf{x} = \\mathbf{x}^{(0)} + t \\mathbf{d}^{(0)}$ en $f(\\mathbf{x})$:")
-            st.latex(f"\\phi(t) = f({', '.join([f'{x0_num[i]} + t \\cdot ({d_num[i]:.2f})' for i in range(num_vars)])})")
-            st.latex(f"\\phi(t) = {sp.latex(phi_sym)}")
+            st.markdown("#### Expresión de la función unidimensional $\\phi(\\alpha)$:")
+            st.write("Sustituyendo $\\mathbf{x} = \\mathbf{x}^{(0)} + \\alpha \\mathbf{d}^{(0)}$ en $f(\\mathbf{x})$:")
+            st.latex(f"\\phi(\\alpha) = f({', '.join([f'{x0_num[i]} + \\alpha \\cdot ({d_num[i]:.2f})' for i in range(num_vars)])})")
+            st.latex(f"\\phi(\\alpha) = {sp.latex(phi_sym)}")
             
             # --- PARTE B: Backtracking (Armijo) ---
             st.subheader("Parte (b): Búsqueda de Línea mediante Backtracking (Condición de Armijo)")
             st.write(f"Parámetros de entrada:")
-            st.write(f"- Paso inicial de prueba $t_0 = {init_t}$")
-            st.write(f"- Parámetro de descenso suficiente de Armijo $\\alpha = {alpha_wolfe}$ (en tu ejercicio representado como $\\beta$)")
-            st.write(f"- Factor de contracción $\\rho = {rho_factor}$ (en tu ejercicio representado como $\\rho$)")
+            st.write(f"- Paso inicial de prueba $\\alpha_0 = {init_alpha}$")
+            st.write(f"- Parámetro de descenso suficiente de Armijo $\\beta = {beta_wolfe}$")
+            st.write(f"- Factor de contracción de Backtracking $P = {p_backtracking}$ (representado como $P$ o $\\rho$)")
             
             st.write("La inecuación de la **Condición de Armijo** (suficiente descenso) está dada por:")
-            st.latex(f"f(\\mathbf{{x}}^{(0)} + t \\mathbf{{d}}^{(0)}) \\le f(\\mathbf{{x}}^{(0)}) + \\alpha \\cdot t \\cdot \\nabla f(\\mathbf{{x}}^{(0)})^T \\mathbf{{d}}^{(0)}")
+            st.latex(f"f(\\mathbf{{x}}^{(0)} + \\alpha \\mathbf{{d}}^{(0)}) \\le f(\\mathbf{{x}}^{(0)}) + \\beta \\cdot \\alpha \\cdot \\nabla f(\\mathbf{{x}}^{(0)})^T \\mathbf{{d}}^{(0)}")
             
             # Calcular término constante de la pendiente de Armijo
             slope = np.dot(grad_num_x0, d_num)
             st.write(f"Donde la pendiente del descenso en la dirección de búsqueda es:")
             st.latex(f"\\nabla f(\\mathbf{{x}}^{(0)})^T \\mathbf{{d}}^{(0)} = {slope:.4f}")
             st.write(f"Sustituyendo numéricamente, la condición de Armijo a verificar es:")
-            st.latex(f"\\phi(t) \\le {fx0_num:.4f} + {alpha_wolfe} \\cdot t \\cdot ({slope:.4f})")
-            st.latex(f"\\phi(t) \\le {fx0_num:.4f} + {alpha_wolfe * slope:.4f} \\cdot t")
+            st.latex(f"\\phi(\\alpha) \\le {fx0_num:.4f} + {beta_wolfe} \\cdot \\alpha \\cdot ({slope:.4f})")
+            st.latex(f"\\phi(\\alpha) \\le {fx0_num:.4f} + {beta_wolfe * slope:.4f} \\cdot \\alpha")
             
             # Simular los pasos del backtracking y mostrarlos de forma docente
-            t_curr = init_t
+            alpha_curr = init_alpha
             backtrack_rows = []
             success = False
             
             for j in range(1, 11): # Máximo 10 iteraciones de backtracking visuales
-                phi_t = float(phi_sym.subs(t_sym, t_curr))
-                armijo_bound = fx0_num + alpha_wolfe * t_curr * slope
-                is_ok = phi_t <= armijo_bound
+                phi_alpha = float(phi_sym.subs(alpha_sym, alpha_curr))
+                armijo_bound = fx0_num + beta_wolfe * alpha_curr * slope
+                is_ok = phi_alpha <= armijo_bound
                 
                 backtrack_rows.append({
                     "Intento": j,
-                    "Paso t": t_curr,
-                    "phi(t)": f"{phi_t:.6f}",
+                    "Paso α": alpha_curr,
+                    "phi(α)": f"{phi_alpha:.6f}",
                     "Límite Armijo": f"{armijo_bound:.6f}",
                     "¿Se cumple la inecuación?": "✅ SÍ (Paso Aceptado)" if is_ok else "❌ NO (Contracción)"
                 })
                 
                 if is_ok:
                     success = True
-                    accepted_t = t_curr
+                    accepted_alpha = alpha_curr
                     break
-                t_curr *= rho_factor
+                alpha_curr *= p_backtracking
                 
             st.table(pd.DataFrame(backtrack_rows))
             
             if success:
-                x1_next = x0_num + accepted_t * d_num
+                x1_next = x0_num + accepted_alpha * d_num
                 st.markdown("#### 🎉 Resultado de la búsqueda de línea:")
                 st.write(f"El método de backtracking se detuvo en el **Intento {len(backtrack_rows)}** aceptando el tamaño de paso:")
-                st.latex(f"t^* = {accepted_t:.6f}")
+                st.latex(f"\\alpha^* = {accepted_alpha:.6f}")
                 st.write("Por ende, el nuevo punto generado en la primera iteración de optimización $\\mathbf{x}^{(1)}$ es:")
-                st.latex(f"\\mathbf{{x}}^{(1)} = \\mathbf{{x}}^{(0)} + t^* \\mathbf{{d}}^{(0)} = \\begin{pmatrix} {' \\\\ '.join([f'{val:.6f}' for val in x1_next])} \\end{pmatrix}")
+                st.latex(f"\\mathbf{{x}}^{(1)} = \\mathbf{{x}}^{(0)} + \\alpha^* \\mathbf{{d}}^{(0)} = \\begin{pmatrix} {' \\\\ '.join([f'{val:.6f}' for val in x1_next])} \\end{pmatrix}")
             else:
                 st.warning("El algoritmo de backtracking no logró converger en los primeros 10 intentos.")
 
