@@ -229,27 +229,45 @@ def optimize_newton(expr, vars_sym, x0, tol, max_iter, alpha_init, c1, c2):
         
     return x, f_val, iteration, error, history, errors
 
-def main():
+def show_login_page():
+    """Muestra la página inicial para solicitar el nombre de usuario."""
+    # Centramos el contenido de la página de inicio
+    col1, col2, col3 = st.columns([1, 2, 1])
+    
+    with col2:
+        st.title("👋 Bienvenido al Optimizador")
+        st.markdown("### Métodos Avanzados con Condiciones de Wolfe")
+        st.write("Para comenzar a optimizar y acumular puntos, por favor identifícate.")
+        
+        # Usamos un formulario para que el usuario pueda presionar 'Enter' para enviar
+        with st.form("login_form"):
+            name_input = st.text_input("Ingresa tu nombre para comenzar:", max_chars=50)
+            submit_button = st.form_submit_button("Entrar a la Aplicación", type="primary")
+            
+            if submit_button:
+                if name_input.strip() == "":
+                    st.warning("⚠️ Debes ingresar un nombre para continuar.")
+                else:
+                    st.session_state.user_name = name_input.strip()
+                    st.session_state.page = "app"
+                    st.rerun() # Recarga la app para cambiar de vista
+
+def show_app_page():
+    """Muestra la aplicación principal de optimización."""
     st.title("🚀 Optimizador Matemático Avanzado")
     st.markdown("Encuentra el mínimo de funciones multidimensionales utilizando métodos avanzados con condiciones de Wolfe.")
     
-    # --- VALOR AGREGADO: Gamificación / Bienvenida ---
-    if 'score' not in st.session_state:
-        st.session_state.score = 0
-    if 'user_name' not in st.session_state:
-        st.session_state.user_name = ""
-
     with st.sidebar:
         st.header("👤 Perfil de Usuario")
-        name_input = st.text_input("Ingresa tu nombre para comenzar:", value=st.session_state.user_name)
-        if name_input != st.session_state.user_name:
-            st.session_state.user_name = name_input
+        st.success(f"¡Hola, {st.session_state.user_name}! Listo para optimizar.")
+        st.metric(label="🌟 Puntos Acumulados", value=st.session_state.score)
         
-        if st.session_state.user_name:
-            st.success(f"¡Hola, {st.session_state.user_name}! Listo para optimizar.")
-            st.metric(label="🌟 Puntos Acumulados", value=st.session_state.score)
-        else:
-            st.info("Ingresa tu nombre para acumular puntos.")
+        # Botón para cerrar sesión / volver a la página de inicio
+        if st.button("🚪 Cambiar de Usuario", use_container_width=True):
+            st.session_state.page = "login"
+            st.session_state.user_name = ""
+            st.session_state.score = 0
+            st.rerun()
             
         st.divider()
 
@@ -300,10 +318,6 @@ def main():
     
     # Botón de ejecución
     if st.button("🚀 Iniciar Optimización", type="primary", use_container_width=True):
-        if not st.session_state.user_name:
-            st.error("⚠️ Por favor, ingresa tu nombre en la barra lateral antes de ejecutar.")
-            return
-
         # 1. Parsear función
         expr = parse_function(func_input, vars_sym)
         if expr is None:
@@ -384,6 +398,21 @@ def main():
             st.success(f"¡Convergencia exitosa! Criterio de parada alcanzado. ¡+50 Puntos para {st.session_state.user_name}!")
         else:
             st.warning("Se alcanzó el número máximo de iteraciones sin lograr la tolerancia deseada.")
+
+def main():
+    # Inicializar las variables de estado de la sesión si no existen
+    if 'page' not in st.session_state:
+        st.session_state.page = "login"
+    if 'score' not in st.session_state:
+        st.session_state.score = 0
+    if 'user_name' not in st.session_state:
+        st.session_state.user_name = ""
+
+    # Sistema de ruteo de páginas basado en el estado
+    if st.session_state.page == "login":
+        show_login_page()
+    elif st.session_state.page == "app":
+        show_app_page()
 
 if __name__ == "__main__":
     main()
