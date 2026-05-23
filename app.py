@@ -12,7 +12,6 @@ st.set_page_config(page_title="Optimizador Web", layout="wide")
 def parse_function(func_str, variables):
     try:
         func_str = func_str.replace('^', '**')
-        # Soporte para multiplicación implícita (ej: 3x1 -> 3*x1)
         func_str = re.sub(r'(\d)([a-zA-Z])', r'\1*\2', func_str)
         return sp.sympify(func_str)
     except Exception:
@@ -33,34 +32,45 @@ def evaluate_grad(grad_exprs, variables, point):
 def optimize_gradient_descent(expr, vars_sym, x0, tol, max_iter, alpha):
     grad_exprs = compute_gradient(expr, vars_sym)
     x = np.array(x0, dtype=float)
-    history = [(x.copy(), evaluate_func(expr, vars_sym, x))]
+    history = []
     errors = []
     
-    for _ in range(max_iter):
+    for i in range(max_iter):
+        f_val = evaluate_func(expr, vars_sym, x)
         g_val = evaluate_grad(grad_exprs, vars_sym, x)
         error = np.linalg.norm(g_val)
+        
+        history.append({'Iteración': i, 'x': x.copy(), 'f(x)': f_val, '||∇f||': error})
         errors.append(error)
         
         if error < tol:
             break
             
-        x = x - alpha * g_val # Paso fijo: x = x - alpha * gradiente
-        history.append((x.copy(), evaluate_func(expr, vars_sym, x)))
+        x = x - alpha * g_val
         
-    return x, evaluate_func(expr, vars_sym, x), len(history), errors[-1] if errors else 0, history, errors
+    return pd.DataFrame(history)
 
 # --- Interfaz de Usuario ---
 def main():
-    if 'page' not in st.session_state: st.session_state.page = "config"
-    
-    st.title("🚀 Optimizador Matemático (Paso Fijo)")
+    if 'user_name' not in st.session_state:
+        st.title("👤 Registro de Usuario")
+        name = st.text_input("Por favor, ingresa tu nombre:")
+        if st.button("Comenzar"):
+            if name:
+                st.session_state.user_name = name
+                st.rerun()
+        return
+
+    st.title(f"🚀 Bienvenido {st.session_state.user_name} - Optimizador Matemático")
     
     with st.sidebar:
         st.header("Configuración")
-        method = st.selectbox("Método", ["Gradiente (Paso Fijo)"])
         alpha = st.number_input("Tamaño de paso (α)", value=0.01, format="%.4f")
-        max_iter = st.number_input("Iteraciones", value=100)
+        max_iter = st.number_input("Iteraciones Máximas", value=100)
         tol = st.number_input("Tolerancia", value=1e-6, format="%.6f")
+        if st.button("Cerrar Sesión"):
+            del st.session_state.user_name
+            st.rerun()
 
     func_input = st.text_input("Función f(x1, x2)", value="x1^2 + x2^2")
     start_point = st.text_input("Punto inicial (x1, x2)", value="1.0, 1.0")
@@ -71,17 +81,15 @@ def main():
         x0 = [float(i) for i in start_point.split(',')]
         
         if expr:
-            res_x, res_f, res_iter, res_err, _, errors = optimize_gradient_descent(
-                expr, vars_sym, x0, tol, max_iter, alpha
-            )
+            df_results = optimize_gradient_descent(expr, vars_sym, x0, tol, max_iter, alpha)
             
             st.success("¡Cálculo finalizado!")
-            st.write(f"**Mínimo en:** {res_x}")
-            st.write(f"**Valor de la función:** {res_f}")
+            st.subheader("Tabla de Iteraciones")
+            st.dataframe(df_results.style.format({'f(x)': '{:.6e}', '||∇f||': '{:.6e}'}))
             
             # Gráfica
             fig, ax = plt.subplots()
-            ax.plot(errors)
+            ax.plot(df_results['Iteración'], df_results['||∇f||'], marker='o')
             ax.set_yscale('log')
             ax.set_xlabel("Iteración")
             ax.set_ylabel("Norma del Gradiente")
