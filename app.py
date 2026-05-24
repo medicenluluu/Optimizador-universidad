@@ -2,13 +2,14 @@ import streamlit as st
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 import sympy as sp
 import re
 
-# Configuración inicial de la página
-st.set_page_config(page_title="Optimizador Web", layout="wide")
+# Configuración de página
+st.set_page_config(page_title="Optimizador Web Pro", layout="wide")
 
-# --- Funciones de Procesamiento ---
+# Funciones de lógica matemática
 def parse_function(func_str, variables):
     try:
         func_str = func_str.replace('^', '**')
@@ -28,74 +29,98 @@ def evaluate_grad(grad_exprs, variables, point):
     subs = {var: val for var, val in zip(variables, point)}
     return np.array([float(g.subs(subs)) for g in grad_exprs])
 
-# --- Método del Gradiente (Paso Fijo) ---
-def optimize_gradient_descent(expr, vars_sym, x0, tol, max_iter, alpha):
+def optimize_gradient_fixed_step(expr, vars_sym, x0, tol, max_iter, alpha):
     grad_exprs = compute_gradient(expr, vars_sym)
     x = np.array(x0, dtype=float)
     history = []
-    errors = []
     
     for i in range(max_iter):
         f_val = evaluate_func(expr, vars_sym, x)
         g_val = evaluate_grad(grad_exprs, vars_sym, x)
-        error = np.linalg.norm(g_val)
+        norm_g = np.linalg.norm(g_val)
         
-        history.append({'Iteración': i, 'x': x.copy(), 'f(x)': f_val, '||∇f||': error})
-        errors.append(error)
+        history.append({
+            'Iteración': i,
+            'x1': x[0],
+            'x2': x[1] if len(x) > 1 else 0,
+            'f(x)': f_val,
+            '||∇f||': norm_g
+        })
         
-        if error < tol:
+        if norm_g < tol:
             break
-            
+        
         x = x - alpha * g_val
         
     return pd.DataFrame(history)
 
-# --- Interfaz de Usuario ---
-def main():
-    if 'user_name' not in st.session_state:
-        st.title("👤 Registro de Usuario")
-        name = st.text_input("Por favor, ingresa tu nombre:")
-        if st.button("Comenzar"):
-            if name:
-                st.session_state.user_name = name
-                st.rerun()
-        return
+# Lógica de navegación
+if 'page' not in st.session_state: st.session_state.page = "login"
 
-    st.title(f"🚀 Bienvenido {st.session_state.user_name} - Optimizador Matemático")
-    
-    with st.sidebar:
-        st.header("Configuración")
-        alpha = st.number_input("Tamaño de paso (α)", value=0.01, format="%.4f")
-        max_iter = st.number_input("Iteraciones Máximas", value=100)
-        tol = st.number_input("Tolerancia", value=1e-6, format="%.6f")
-        if st.button("Cerrar Sesión"):
-            del st.session_state.user_name
+# Página 1: Login
+if st.session_state.page == "login":
+    st.title("👤 Registro de Usuario")
+    name = st.text_input("Nombre de usuario:")
+    if st.button("Ingresar"):
+        if name:
+            st.session_state.user_name = name
+            st.session_state.page = "config"
             st.rerun()
 
+# Página 2: Configuración
+elif st.session_state.page == "config":
+    st.title(f"⚙️ Configuración - {st.session_state.user_name}")
     func_input = st.text_input("Función f(x1, x2)", value="x1^2 + x2^2")
-    start_point = st.text_input("Punto inicial (x1, x2)", value="1.0, 1.0")
-
-    if st.button("Ejecutar Optimización"):
+    start_point = st.text_input("Punto inicial (x1, x2)", value="2.0, 2.0")
+    col1, col2 = st.columns(2)
+    alpha = col1.number_input("Paso Fijo (α)", value=0.1, format="%.4f")
+    max_iter = col2.number_input("Iteraciones", value=50)
+    tol = col1.number_input("Tolerancia", value=1e-5, format="%.1e")
+    
+    if st.button("Ejecutar"):
         vars_sym = sp.symbols('x1 x2')
         expr = parse_function(func_input, vars_sym)
-        x0 = [float(i) for i in start_point.split(',')]
-        
+        x0 = [float(i.strip()) for i in start_point.split(',')]
         if expr:
-            df_results = optimize_gradient_descent(expr, vars_sym, x0, tol, max_iter, alpha)
-            
-            st.success("¡Cálculo finalizado!")
-            st.subheader("Tabla de Iteraciones")
-            st.dataframe(df_results.style.format({'f(x)': '{:.6e}', '||∇f||': '{:.6e}'}))
-            
-            # Gráfica
-            fig, ax = plt.subplots()
-            ax.plot(df_results['Iteración'], df_results['||∇f||'], marker='o')
-            ax.set_yscale('log')
-            ax.set_xlabel("Iteración")
-            ax.set_ylabel("Norma del Gradiente")
-            st.pyplot(fig)
-        else:
-            st.error("Error en la sintaxis de la función.")
+            st.session_state.results = optimize_gradient_fixed_step(expr, vars_sym, x0, tol, max_iter, alpha)
+            st.session_state.expr = expr
+            st.session_state.vars_sym = vars_sym
+            st.session_state.page = "results"
+            st.rerun()
 
-if __name__ == "__main__":
-    main()
+# Página 3: Resultados
+elif st.session_state.page == "results":
+    st.title("📊 Resultados")
+    if st.button("Volver"):
+        st.session_state.page = "config"
+        st.rerun()
+        
+    df = st.session_state.results
+    st.dataframe(df)
+    
+    col_a, col_b = st.columns(2)
+    # Convergencia
+    with col_a:
+        fig, ax = plt.subplots()
+        ax.plot(df['Iteración'], df['||∇f||'], marker='o')
+        ax.set_yscale('log')
+        ax.set_title("Convergencia")
+        st.pyplot(fig)
+        
+    # Plano 2D
+    with col_b:
+        f_lambda = sp.lambdify(st.session_state.vars_sym, st.session_state.expr, 'numpy')
+        X, Y = np.meshgrid(np.linspace(df['x1'].min()-1, df['x1'].max()+1, 30), 
+                           np.linspace(df['x2'].min()-1, df['x2'].max()+1, 30))
+        Z = f_lambda(X, Y)
+        fig2, ax2 = plt.subplots()
+        ax2.contour(X, Y, Z, levels=15)
+        ax2.plot(df['x1'], df['x2'], 'r-x')
+        st.pyplot(fig2)
+        
+    # Superficie 3D
+    fig3 = plt.figure()
+    ax3 = fig3.add_subplot(111, projection='3d')
+    ax3.plot_surface(X, Y, Z, alpha=0.5, cmap='viridis')
+    ax3.plot(df['x1'], df['x2'], df['f(x)'], 'r-o')
+    st.pyplot(fig3)
