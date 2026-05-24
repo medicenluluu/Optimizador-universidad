@@ -23,7 +23,7 @@ def compute_gradient(expr, variables):
 def compute_hessian(expr, variables):
     return sp.hessian(expr, variables)
 
-def optimize_wrapper(method, expr, vars_sym, x0, tol, max_iter):
+def optimize_wrapper(method, expr, vars_sym, x0, tol, max_iter, alpha):
     # Aseguramos que vars_sym sea siempre una lista (iterable)
     if not isinstance(vars_sym, (list, tuple)):
         vars_sym = [vars_sym]
@@ -53,6 +53,8 @@ def optimize_wrapper(method, expr, vars_sym, x0, tol, max_iter):
         "Método de Newton": "Newton-CG"
     }
 
+    # Nota: Scipy maneja internamente el paso óptimo en CG/Newton, 
+    # pero aquí se expone el alfa por si deseas futuras personalizaciones manuales.
     if method == "Método de Newton":
         minimize(func, x0, method=method_map[method], jac=grad, hess=hess, callback=callback, options={'maxiter': max_iter, 'xtol': tol})
     else:
@@ -84,11 +86,11 @@ elif st.session_state.page == "config":
     method = st.selectbox("Método de optimización:", 
                           ["Método del Gradiente", "Método del Gradiente Conjugado", "Método de Newton"])
     
+    alpha = st.number_input("Tamaño del paso (alfa)", value=0.01, format="%.4f")
     max_iter = st.number_input("Iteraciones Máximas", value=50)
     tol = st.number_input("Tolerancia", value=1e-5, format="%.1e")
     
     if st.button("Ejecutar"):
-        # Aseguramos que el símbolo sea una lista incluso si n_vars = 1
         syms_str = ' '.join(vars_names)
         vars_sym = sp.symbols(syms_str)
         if n_vars == 1:
@@ -101,7 +103,7 @@ elif st.session_state.page == "config":
             x0 = [float(i.strip()) for i in raw_points if i.strip()]
             
             if expr is not None and len(x0) == n_vars:
-                st.session_state.results = optimize_wrapper(method, expr, vars_sym, x0, tol, max_iter)
+                st.session_state.results = optimize_wrapper(method, expr, vars_sym, x0, tol, max_iter, alpha)
                 st.session_state.page = "results"
                 st.rerun()
             else:
