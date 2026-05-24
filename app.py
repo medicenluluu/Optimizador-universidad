@@ -24,28 +24,41 @@ def compute_hessian(expr, variables):
     return sp.hessian(expr, variables)
 
 def optimize_wrapper(method, expr, vars_sym, x0, tol, max_iter, alpha):
-    # Aseguramos que vars_sym sea siempre una lista (iterable)
     if not isinstance(vars_sym, (list, tuple)):
         vars_sym = [vars_sym]
         
     f = sp.lambdify(vars_sym, expr, 'numpy')
-    
-    # Adaptación para que funcione con 1 o más variables
     func = lambda x: f(*x) if len(vars_sym) > 1 else f(x[0])
     
     grad_exprs = compute_gradient(expr, vars_sym)
-    grad = lambda x: np.array([float(g.subs({v: val for v, val in zip(vars_sym, x)})) for g in grad_exprs])
+    grad_func = lambda x: np.array([float(g.subs({v: val for v, val in zip(vars_sym, x)})) for g in grad_exprs])
     
     hess_expr = compute_hessian(expr, vars_sym)
     hess = lambda x: np.array([[float(h.subs({v: val for v, val in zip(vars_sym, x)})) for h in row] for row in hess_expr])
 
     history = []
-    def callback(xk):
+    
+    # Registro de la iteración inicial (k=0)
+    def record_step(k, xk):
         x_list = xk.tolist() if hasattr(xk, 'tolist') else [xk]
-        entry = {'Iteración': len(history), 'f(x)': func(x_list), '||∇f||': np.linalg.norm(grad(x_list))}
+        grad_val = grad_func(x_list)
+        entry = {
+            'Iteración (k)': k,
+            'f(x)': func(x_list),
+            '||∇f(x)||': np.linalg.norm(grad_val)
+        }
         for i, val in enumerate(x_list):
-            entry[f'x{i+1}'] = val
+            entry[f'x_{k+1}' if k >= 0 else f'x_{k+1}'] = val
         history.append(entry)
+
+    # Callback para capturar cada paso
+    k = [0]
+    def callback(xk):
+        k[0] += 1
+        record_step(k[0], xk)
+
+    # Registro inicial
+    record_step(0, x0)
 
     method_map = {
         "Método del Gradiente": "CG",
@@ -53,12 +66,10 @@ def optimize_wrapper(method, expr, vars_sym, x0, tol, max_iter, alpha):
         "Método de Newton": "Newton-CG"
     }
 
-    # Nota: Scipy maneja internamente el paso óptimo en CG/Newton, 
-    # pero aquí se expone el alfa por si deseas futuras personalizaciones manuales.
     if method == "Método de Newton":
-        minimize(func, x0, method=method_map[method], jac=grad, hess=hess, callback=callback, options={'maxiter': max_iter, 'xtol': tol})
+        minimize(func, x0, method=method_map[method], jac=grad_func, hess=hess, callback=callback, options={'maxiter': max_iter, 'xtol': tol})
     else:
-        minimize(func, x0, method=method_map[method], jac=grad, callback=callback, options={'maxiter': max_iter, 'gtol': tol})
+        minimize(func, x0, method=method_map[method], jac=grad_func, callback=callback, options={'maxiter': max_iter, 'gtol': tol})
         
     return pd.DataFrame(history)
 
@@ -77,24 +88,23 @@ if st.session_state.page == "login":
 elif st.session_state.page == "config":
     st.title(f"⚙️ Configuración - {st.session_state.user_name}")
     
-    n_vars = st.number_input("Número de variables (n)", min_value=1, max_value=10, value=2)
+    n_vars = st.number_input("Número de variables (n)", min_value=1, max_value=10, value=1)
     vars_names = [f"x{i+1}" for i in range(n_vars)]
     
-    func_input = st.text_input(f"Función f({', '.join(vars_names)})", value=" + ".join([f"{v}^2" for v in vars_names]))
-    start_point = st.text_input(f"Punto inicial ({', '.join(vars_names)})", value=", ".join(["1.0"] * n_vars))
+    func_input = st.text_input(f"Función f({', '.join(vars_names)})", value="x1^4 - 3*x1^3 + 2")
+    start_point = st.text_input(f"Punto inicial ({', '.join(vars_names)})", value="1.0")
     
     method = st.selectbox("Método de optimización:", 
                           ["Método del Gradiente", "Método del Gradiente Conjugado", "Método de Newton"])
     
     alpha = st.number_input("Tamaño del paso (alfa)", value=0.01, format="%.4f")
-    max_iter = st.number_input("Iteraciones Máximas", value=50)
+    max_iter = st.number_input("Iteraciones Máximas", value=10)
     tol = st.number_input("Tolerancia", value=1e-5, format="%.1e")
     
     if st.button("Ejecutar"):
         syms_str = ' '.join(vars_names)
         vars_sym = sp.symbols(syms_str)
-        if n_vars == 1:
-            vars_sym = [vars_sym]
+        if n_vars == 1: vars_sym = [vars_sym]
             
         expr = parse_function(func_input, vars_sym)
         
@@ -112,7 +122,7 @@ elif st.session_state.page == "config":
             st.error(f"Error al procesar los datos: {str(e)}")
 
 elif st.session_state.page == "results":
-    st.title("📊 Resultados")
+    st.title("📊 Resultados de las iteraciones")
     if st.button("Volver"):
         st.session_state.page = "config"
         st.rerun()
