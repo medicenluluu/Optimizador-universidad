@@ -1,7 +1,6 @@
 import streamlit as st
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 import sympy as sp
 import re
 from scipy.optimize import minimize
@@ -11,12 +10,9 @@ st.set_page_config(page_title="Optimizador Web", layout="wide")
 
 def parse_function(func_str, vars_list):
     try:
-        # Reemplazar ^ por ** para potencias
         func_str = func_str.replace('^', '**')
-        # Manejar multiplicación implícita (ej: 3x1 -> 3*x1)
         func_str = re.sub(r'(\d)([a-zA-Z])', r'\1*\2', func_str)
         expr = sp.sympify(func_str)
-        # Validar que la expresión depende de x1 y x2
         return expr
     except Exception:
         return None
@@ -34,20 +30,17 @@ def optimize_wrapper(method, expr, vars_sym, x0, tol, max_iter):
     grad_exprs = compute_gradient(expr, vars_sym)
     grad = lambda x: np.array([float(g.subs({v: val for v, val in zip(vars_sym, x)})) for g in grad_exprs])
     
-    # Matriz Hessiana para Newton
     hess_expr = compute_hessian(expr, vars_sym)
     hess = lambda x: np.array([[float(h.subs({v: val for v, val in zip(vars_sym, x)})) for h in row] for row in hess_expr])
 
     history = []
     def callback(xk):
         x_list = xk.tolist()
-        history.append({
-            'Iteración': len(history), 
-            'x1': x_list[0], 
-            'x2': x_list[1], 
-            'f(x)': func(x_list), 
-            '||∇f||': np.linalg.norm(grad(x_list))
-        })
+        # Construir diccionario de resultados dinámico
+        entry = {'Iteración': len(history), 'f(x)': func(x_list), '||∇f||': np.linalg.norm(grad(x_list))}
+        for i, val in enumerate(x_list):
+            entry[f'x{i+1}'] = val
+        history.append(entry)
 
     method_map = {
         "Método del Gradiente": "CG",
@@ -76,31 +69,33 @@ if st.session_state.page == "login":
 
 elif st.session_state.page == "config":
     st.title(f"⚙️ Configuración - {st.session_state.user_name}")
-    func_input = st.text_input("Función f(x1, x2)", value="x1^2 + x2^2")
-    start_point = st.text_input("Punto inicial (x1, x2)", value="2.0, 2.0")
     
-    method = st.selectbox("Selecciona el método de optimización:", 
+    n_vars = st.number_input("Número de variables (n)", min_value=1, max_value=10, value=2)
+    vars_names = [f"x{i+1}" for i in range(n_vars)]
+    
+    func_input = st.text_input(f"Función f({', '.join(vars_names)})", value=" + ".join([f"{v}^2" for v in vars_names]))
+    start_point = st.text_input(f"Punto inicial ({', '.join(vars_names)})", value=", ".join(["1.0"] * n_vars))
+    
+    method = st.selectbox("Método de optimización:", 
                           ["Método del Gradiente", "Método del Gradiente Conjugado", "Método de Newton"])
     
     max_iter = st.number_input("Iteraciones Máximas", value=50)
     tol = st.number_input("Tolerancia", value=1e-5, format="%.1e")
     
     if st.button("Ejecutar"):
-        vars_sym = sp.symbols('x1 x2')
+        vars_sym = sp.symbols(' '.join(vars_names))
         expr = parse_function(func_input, vars_sym)
         
-        # Validación mejorada para los datos de entrada
         try:
-            # Limpiar y convertir lista de puntos
             raw_points = start_point.replace('(', '').replace(')', '').split(',')
             x0 = [float(i.strip()) for i in raw_points if i.strip()]
             
-            if expr is not None and len(x0) == 2:
+            if expr is not None and len(x0) == n_vars:
                 st.session_state.results = optimize_wrapper(method, expr, vars_sym, x0, tol, max_iter)
                 st.session_state.page = "results"
                 st.rerun()
             else:
-                st.error("Error: Asegúrate de ingresar una función válida (ej: x1^2 + x2^2) y dos coordenadas numéricas.")
+                st.error(f"Error: Asegúrate de ingresar una función válida y {n_vars} coordenadas numéricas.")
         except Exception as e:
             st.error(f"Error al procesar los datos: {str(e)}")
 
