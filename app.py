@@ -6,7 +6,7 @@ import re
 from scipy.optimize import minimize
 
 # Configuración de página
-st.set_page_config(page_title="Optimizador Web", layout="wide")
+st.set_config(page_title="Optimizador Web", layout="wide")
 
 def parse_function(func_str, vars_list):
     try:
@@ -38,7 +38,6 @@ def optimize_wrapper(method, expr, vars_sym, x0, tol, max_iter, alpha):
 
     history = []
     
-    # Registro de la iteración inicial (k=0)
     def record_step(k, xk):
         x_list = xk.tolist() if hasattr(xk, 'tolist') else [xk]
         grad_val = grad_func(x_list)
@@ -48,16 +47,14 @@ def optimize_wrapper(method, expr, vars_sym, x0, tol, max_iter, alpha):
             '||∇f(x)||': np.linalg.norm(grad_val)
         }
         for i, val in enumerate(x_list):
-            entry[f'x_{k+1}' if k >= 0 else f'x_{k+1}'] = val
+            entry[f'x_{i+1}'] = val
         history.append(entry)
 
-    # Callback para capturar cada paso
     k = [0]
     def callback(xk):
         k[0] += 1
         record_step(k[0], xk)
 
-    # Registro inicial
     record_step(0, x0)
 
     method_map = {
@@ -91,8 +88,8 @@ elif st.session_state.page == "config":
     n_vars = st.number_input("Número de variables (n)", min_value=1, max_value=10, value=1)
     vars_names = [f"x{i+1}" for i in range(n_vars)]
     
-    func_input = st.text_input(f"Función f({', '.join(vars_names)})", value="x1^4 - 3*x1^3 + 2")
-    start_point = st.text_input(f"Punto inicial ({', '.join(vars_names)})", value="1.0")
+    func_input = st.text_input(f"Función f({', '.join(vars_names)})", value="x1**4 - 3*x1**3 + 2")
+    start_point = st.text_input(f"Punto inicial (separado por comas)", value="1.0")
     
     method = st.selectbox("Método de optimización:", 
                           ["Método del Gradiente", "Método del Gradiente Conjugado", "Método de Newton"])
@@ -102,14 +99,13 @@ elif st.session_state.page == "config":
     tol = st.number_input("Tolerancia", value=1e-5, format="%.1e")
     
     if st.button("Ejecutar"):
-        syms_str = ' '.join(vars_names)
-        vars_sym = sp.symbols(syms_str)
+        vars_sym = sp.symbols(' '.join(vars_names))
         if n_vars == 1: vars_sym = [vars_sym]
             
         expr = parse_function(func_input, vars_sym)
         
         try:
-            raw_points = start_point.replace('(', '').replace(')', '').split(',')
+            raw_points = re.sub(r'[^\d.,-]', '', start_point).split(',')
             x0 = [float(i.strip()) for i in raw_points if i.strip()]
             
             if expr is not None and len(x0) == n_vars:
