@@ -22,7 +22,7 @@ def compute_gradient(expr, variables):
 def compute_hessian(expr, variables):
     return sp.hessian(expr, variables)
 
-def run_gradient_descent(expr, vars_sym, x0, alpha_type, alpha_val, max_iter):
+def run_gradient_descent(expr, vars_sym, x0, alpha_type, alpha_val, wolfe_params, max_iter):
     history = []
     f_lambdified = sp.lambdify(vars_sym, expr, 'numpy')
     grad_exprs = compute_gradient(expr, vars_sym)
@@ -41,11 +41,21 @@ def run_gradient_descent(expr, vars_sym, x0, alpha_type, alpha_val, max_iter):
         if k < max_iter:
             if alpha_type == "Fijo":
                 alpha = alpha_val
-            else:
+            elif alpha_type == "Variable":
                 # Búsqueda lineal simple (Backtracking básico)
                 alpha = 0.5
                 while f_lambdified(*(curr_x - alpha * grad_val)) > f_val and alpha > 1e-6:
                     alpha *= 0.5
+            else: # Condición de Wolfe (Armijo)
+                alpha = wolfe_params['alpha_init']
+                c1 = wolfe_params['c1']
+                rho = wolfe_params['rho']
+                
+                # Primera condición de Wolfe: f(x + a*p) <= f(x) + c1 * a * grad(f)^T * p
+                # Donde p = -grad(f)
+                direction = -grad_val
+                while f_lambdified(*(curr_x + alpha * direction)) > (f_val + c1 * alpha * np.dot(grad_val, direction)):
+                    alpha *= rho
             
             curr_x = curr_x - alpha * grad_val
             
@@ -113,13 +123,18 @@ func_input = st.text_input(f"Función f({', '.join(vars_names)})", value="x1**4 
 start_point = st.text_input(f"Punto inicial (separado por comas)", value="0.5")
 method = st.selectbox("Selecciona el método:", ["Método del Gradiente", "Método de Newton", "Método del Gradiente Conjugado"])
 
-alpha_type = None
+alpha_type = "Fijo"
 alpha_val = 0.01
+wolfe_params = {'alpha_init': 1.0, 'c1': 1e-4, 'rho': 0.5}
 
 if method == "Método del Gradiente":
-    alpha_type = st.radio("Tipo de alfa:", ["Fijo", "Variable"])
+    alpha_type = st.radio("Tipo de alfa:", ["Fijo", "Variable", "Wolfe (Armijo)"])
     if alpha_type == "Fijo":
         alpha_val = st.number_input("Tamaño del paso (alfa):", value=0.01, format="%.4f")
+    elif alpha_type == "Wolfe (Armijo)":
+        wolfe_params['alpha_init'] = st.number_input("Alfa inicial:", value=1.0, format="%.4f")
+        wolfe_params['rho'] = st.number_input("Rho (factor de reducción):", value=0.5, format="%.4f")
+        wolfe_params['c1'] = st.number_input("C1 (constante Armijo):", value=1e-4, format="%.4e")
 
 max_iter = st.number_input("Iteraciones", value=10)
 
@@ -134,7 +149,7 @@ if st.button("Ejecutar"):
         
         if expr is not None and len(x0) == n_vars:
             if method == "Método del Gradiente":
-                results = run_gradient_descent(expr, vars_sym, x0, alpha_type, alpha_val, int(max_iter))
+                results = run_gradient_descent(expr, vars_sym, x0, alpha_type, alpha_val, wolfe_params, int(max_iter))
             elif method == "Método de Newton":
                 results = run_newton_method(expr, vars_sym, x0, int(max_iter))
             else:
