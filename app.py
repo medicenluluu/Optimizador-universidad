@@ -24,8 +24,14 @@ def compute_hessian(expr, variables):
     return sp.hessian(expr, variables)
 
 def optimize_wrapper(method, expr, vars_sym, x0, tol, max_iter):
+    # Aseguramos que vars_sym sea siempre una lista (iterable)
+    if not isinstance(vars_sym, (list, tuple)):
+        vars_sym = [vars_sym]
+        
     f = sp.lambdify(vars_sym, expr, 'numpy')
-    func = lambda x: f(*x)
+    
+    # Adaptación para que funcione con 1 o más variables
+    func = lambda x: f(*x) if len(vars_sym) > 1 else f(x[0])
     
     grad_exprs = compute_gradient(expr, vars_sym)
     grad = lambda x: np.array([float(g.subs({v: val for v, val in zip(vars_sym, x)})) for g in grad_exprs])
@@ -35,8 +41,7 @@ def optimize_wrapper(method, expr, vars_sym, x0, tol, max_iter):
 
     history = []
     def callback(xk):
-        x_list = xk.tolist()
-        # Construir diccionario de resultados dinámico
+        x_list = xk.tolist() if hasattr(xk, 'tolist') else [xk]
         entry = {'Iteración': len(history), 'f(x)': func(x_list), '||∇f||': np.linalg.norm(grad(x_list))}
         for i, val in enumerate(x_list):
             entry[f'x{i+1}'] = val
@@ -83,7 +88,12 @@ elif st.session_state.page == "config":
     tol = st.number_input("Tolerancia", value=1e-5, format="%.1e")
     
     if st.button("Ejecutar"):
-        vars_sym = sp.symbols(' '.join(vars_names))
+        # Aseguramos que el símbolo sea una lista incluso si n_vars = 1
+        syms_str = ' '.join(vars_names)
+        vars_sym = sp.symbols(syms_str)
+        if n_vars == 1:
+            vars_sym = [vars_sym]
+            
         expr = parse_function(func_input, vars_sym)
         
         try:
