@@ -5,8 +5,8 @@ import sympy as sp
 import re
 from scipy.optimize import minimize
 
-# Configuración de página
-st.set_config(page_title="Optimizador Web", layout="wide")
+# Configuración de página corregida
+st.set_page_config(page_title="Optimizador Web", layout="wide")
 
 def parse_function(func_str, vars_list):
     try:
