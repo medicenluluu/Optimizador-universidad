@@ -11,9 +11,13 @@ st.set_page_config(page_title="Optimizador Web", layout="wide")
 
 def parse_function(func_str, vars_list):
     try:
+        # Reemplazar ^ por ** para potencias
         func_str = func_str.replace('^', '**')
+        # Manejar multiplicación implícita (ej: 3x1 -> 3*x1)
         func_str = re.sub(r'(\d)([a-zA-Z])', r'\1*\2', func_str)
-        return sp.sympify(func_str)
+        expr = sp.sympify(func_str)
+        # Validar que la expresión depende de x1 y x2
+        return expr
     except Exception:
         return None
 
@@ -36,7 +40,6 @@ def optimize_wrapper(method, expr, vars_sym, x0, tol, max_iter):
 
     history = []
     def callback(xk):
-        # Convertimos xk a lista para calcular f(x) y grad(x)
         x_list = xk.tolist()
         history.append({
             'Iteración': len(history), 
@@ -46,14 +49,12 @@ def optimize_wrapper(method, expr, vars_sym, x0, tol, max_iter):
             '||∇f||': np.linalg.norm(grad(x_list))
         })
 
-    # Mapeo preciso a algoritmos de scipy
     method_map = {
-        "Método del Gradiente": "CG",           # Steepest Descent aproximado mediante Conjugate Gradient
-        "Método del Gradiente Conjugado": "CG", # Algoritmo de Fletcher-Reeves
-        "Método de Newton": "Newton-CG"         # Newton-Conjugate Gradient
+        "Método del Gradiente": "CG",
+        "Método del Gradiente Conjugado": "CG",
+        "Método de Newton": "Newton-CG"
     }
 
-    # Ejecución
     if method == "Método de Newton":
         minimize(func, x0, method=method_map[method], jac=grad, hess=hess, callback=callback, options={'maxiter': max_iter, 'xtol': tol})
     else:
@@ -78,7 +79,6 @@ elif st.session_state.page == "config":
     func_input = st.text_input("Función f(x1, x2)", value="x1^2 + x2^2")
     start_point = st.text_input("Punto inicial (x1, x2)", value="2.0, 2.0")
     
-    # Lista desplegable de métodos
     method = st.selectbox("Selecciona el método de optimización:", 
                           ["Método del Gradiente", "Método del Gradiente Conjugado", "Método de Newton"])
     
@@ -88,16 +88,21 @@ elif st.session_state.page == "config":
     if st.button("Ejecutar"):
         vars_sym = sp.symbols('x1 x2')
         expr = parse_function(func_input, vars_sym)
+        
+        # Validación mejorada para los datos de entrada
         try:
-            x0 = [float(i.strip()) for i in start_point.split(',')]
-            if expr and len(x0) == 2:
+            # Limpiar y convertir lista de puntos
+            raw_points = start_point.replace('(', '').replace(')', '').split(',')
+            x0 = [float(i.strip()) for i in raw_points if i.strip()]
+            
+            if expr is not None and len(x0) == 2:
                 st.session_state.results = optimize_wrapper(method, expr, vars_sym, x0, tol, max_iter)
                 st.session_state.page = "results"
                 st.rerun()
             else:
-                st.error("Error: Revisa la sintaxis de la función o los puntos iniciales.")
-        except:
-            st.error("Error al procesar los datos de entrada.")
+                st.error("Error: Asegúrate de ingresar una función válida (ej: x1^2 + x2^2) y dos coordenadas numéricas.")
+        except Exception as e:
+            st.error(f"Error al procesar los datos: {str(e)}")
 
 elif st.session_state.page == "results":
     st.title("📊 Resultados")
