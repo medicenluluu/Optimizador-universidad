@@ -67,13 +67,41 @@ def run_newton_method(expr, vars_sym, x0, max_iter):
                 break
     return pd.DataFrame(history)
 
+def run_conjugate_gradient(expr, vars_sym, x0, max_iter):
+    history = []
+    f_lambdified = sp.lambdify(vars_sym, expr, 'numpy')
+    grad_exprs = compute_gradient(expr, vars_sym)
+    grad_lambdified = [sp.lambdify(vars_sym, g, 'numpy') for g in grad_exprs]
+    
+    curr_x = np.array(x0, dtype=float)
+    r = -np.array([g(*curr_x) for g in grad_lambdified])
+    p = r.copy()
+    
+    for k in range(max_iter + 1):
+        f_val = f_lambdified(*curr_x) if len(vars_sym) > 1 else f_lambdified(curr_x[0])
+        grad_val = -r 
+        entry = {'Iteración': k, 'f(x)': f_val, '||∇f(x)||': np.linalg.norm(grad_val)}
+        for i, val in enumerate(curr_x):
+            entry[f'x_{i+1}'] = val
+        history.append(entry)
+        
+        if k < max_iter:
+            # Simplificación: paso fijo para búsqueda lineal
+            alpha = 0.01 
+            curr_x = curr_x + alpha * p
+            new_r = -np.array([g(*curr_x) for g in grad_lambdified])
+            beta = np.dot(new_r, new_r) / np.dot(r, r)
+            p = new_r + beta * p
+            r = new_r
+    return pd.DataFrame(history)
+
 st.title("⚙️ Optimizador Web")
 
 n_vars = st.number_input("Número de variables (n)", min_value=1, max_value=10, value=1)
 vars_names = [f"x{i+1}" for i in range(n_vars)]
 func_input = st.text_input(f"Función f({', '.join(vars_names)})", value="x1**4 - 3*x1**3 + 2")
 start_point = st.text_input(f"Punto inicial (separado por comas)", value="0.5")
-method = st.selectbox("Selecciona el método:", ["Método del Gradiente", "Método de Newton"])
+method = st.selectbox("Selecciona el método:", ["Método del Gradiente", "Método de Newton", "Método del Gradiente Conjugado"])
 alpha = st.number_input("Tamaño del paso (alfa) - Solo Gradiente", value=0.01, format="%.4f")
 max_iter = st.number_input("Iteraciones", value=10)
 
@@ -89,8 +117,10 @@ if st.button("Ejecutar"):
         if expr is not None and len(x0) == n_vars:
             if method == "Método del Gradiente":
                 results = run_gradient_descent(expr, vars_sym, x0, alpha, int(max_iter))
-            else:
+            elif method == "Método de Newton":
                 results = run_newton_method(expr, vars_sym, x0, int(max_iter))
+            else:
+                results = run_conjugate_gradient(expr, vars_sym, x0, int(max_iter))
             st.dataframe(results)
         else:
             st.error("Error en las dimensiones o la función.")
