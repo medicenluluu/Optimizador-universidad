@@ -5,12 +5,13 @@ import sympy as sp
 import re
 from scipy.optimize import minimize
 
-# Configuración de página corregida
+# Configuración de página
 st.set_page_config(page_title="Optimizador Web", layout="wide")
 
 def parse_function(func_str, vars_list):
     try:
         func_str = func_str.replace('^', '**')
+        # Reemplazar multiplicaciones implícitas para mejorar la compatibilidad
         func_str = re.sub(r'(\d)([a-zA-Z])', r'\1*\2', func_str)
         expr = sp.sympify(func_str)
         return expr
@@ -39,7 +40,8 @@ def optimize_wrapper(method, expr, vars_sym, x0, tol, max_iter, alpha):
     history = []
     
     def record_step(k, xk):
-        x_list = xk.tolist() if hasattr(xk, 'tolist') else [xk]
+        # Asegurar que xk sea una lista de floats
+        x_list = np.atleast_1d(xk).astype(float).tolist()
         grad_val = grad_func(x_list)
         entry = {
             'Iteración (k)': k,
@@ -89,7 +91,8 @@ elif st.session_state.page == "config":
     vars_names = [f"x{i+1}" for i in range(n_vars)]
     
     func_input = st.text_input(f"Función f({', '.join(vars_names)})", value="x1**4 - 3*x1**3 + 2")
-    start_point = st.text_input(f"Punto inicial (separado por comas)", value="1.0")
+    # Instrucción clara para evitar que el usuario ingrese corchetes
+    start_point = st.text_input(f"Punto inicial (ej: 0.5, 1.2)", value="1.0")
     
     method = st.selectbox("Método de optimización:", 
                           ["Método del Gradiente", "Método del Gradiente Conjugado", "Método de Newton"])
@@ -105,17 +108,18 @@ elif st.session_state.page == "config":
         expr = parse_function(func_input, vars_sym)
         
         try:
-            raw_points = re.sub(r'[^\d.,-]', '', start_point).split(',')
-            x0 = [float(i.strip()) for i in raw_points if i.strip()]
+            # Limpieza rigurosa para eliminar cualquier cosa que no sea número, punto o coma
+            clean_str = re.sub(r'[^0-9.,-]', '', start_point)
+            x0 = [float(i) for i in clean_str.split(',') if i.strip()]
             
             if expr is not None and len(x0) == n_vars:
                 st.session_state.results = optimize_wrapper(method, expr, vars_sym, x0, tol, max_iter, alpha)
                 st.session_state.page = "results"
                 st.rerun()
             else:
-                st.error(f"Error: Asegúrate de ingresar una función válida y {n_vars} coordenadas numéricas.")
+                st.error(f"Error: Asegúrate de ingresar exactamente {n_vars} coordenadas numéricas separadas por comas.")
         except Exception as e:
-            st.error(f"Error al procesar los datos: {str(e)}")
+            st.error(f"Error al procesar los datos de entrada: {str(e)}")
 
 elif st.session_state.page == "results":
     st.title("📊 Resultados de las iteraciones")
