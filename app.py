@@ -4,20 +4,20 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import sympy as sp
 import re
+from scipy.optimize import minimize
 
-# Configuración de página
-st.set_page_config(page_title="Optimizador Web Pro", layout="wide")
+st.set_page_config(page_title="Optimizador Web", layout="wide")
 
-# Lógica matemática robusta
 def parse_function(func_str, vars_list):
     try:
+        # Reemplazar ^ por ** para potencias en Python/Sympy
         func_str = func_str.replace('^', '**')
-        # Soporte para multiplicación implícita
+        # Manejar multiplicación implícita (ej: 3x1 -> 3*x1)
         func_str = re.sub(r'(\d)([a-zA-Z])', r'\1*\2', func_str)
-        expr = sp.sympify(func_str)
-        # Asegurar que solo usa las variables permitidas
-        if not expr.free_symbols.issubset(set(vars_list)):
-            return None
+        # Convertir string a expresión matemática
+        return sp.sympify(func_str)
+    except Exception:
+        return None
         return expr
     except:
         return None
