@@ -6,74 +6,102 @@ import sympy as sp
 import re
 from scipy.optimize import minimize
 
+# Configuración de página
 st.set_page_config(page_title="Optimizador Web", layout="wide")
 
 def parse_function(func_str, vars_list):
     try:
-        # Reemplazar ^ por ** para potencias en Python/Sympy
         func_str = func_str.replace('^', '**')
-        # Manejar multiplicación implícita (ej: 3x1 -> 3*x1)
         func_str = re.sub(r'(\d)([a-zA-Z])', r'\1*\2', func_str)
-        # Convertir string a expresión matemática
         return sp.sympify(func_str)
     except Exception:
         return None
-        return expr
-    except:
-        return None
 
-def get_gradient(expr, vars_list):
-    return [sp.diff(expr, v) for v in vars_list]
+def compute_gradient(expr, variables):
+    return [sp.diff(expr, var) for var in variables]
 
-def optimize_manual(expr, vars_list, x0, tol, max_iter, alpha):
-    grad_exprs = get_gradient(expr, vars_list)
-    x = np.array(x0, dtype=float)
-    history = []
+def compute_hessian(expr, variables):
+    return sp.hessian(expr, variables)
+
+def optimize_wrapper(method, expr, vars_sym, x0, tol, max_iter):
+    f = sp.lambdify(vars_sym, expr, 'numpy')
+    func = lambda x: f(*x)
     
-    for i in range(max_iter):
-        subs = {v: x[j] for j, v in enumerate(vars_list)}
-        f_val = float(expr.subs(subs))
-        g_val = np.array([float(g.subs(subs)) for g in grad_exprs])
-        norm_g = np.linalg.norm(g_val)
+    grad_exprs = compute_gradient(expr, vars_sym)
+    grad = lambda x: np.array([float(g.subs({v: val for v, val in zip(vars_sym, x)})) for g in grad_exprs])
+    
+    # Matriz Hessiana para Newton
+    hess_expr = compute_hessian(expr, vars_sym)
+    hess = lambda x: np.array([[float(h.subs({v: val for v, val in zip(vars_sym, x)})) for h in row] for row in hess_expr])
+
+    history = []
+    def callback(xk):
+        # Convertimos xk a lista para calcular f(x) y grad(x)
+        x_list = xk.tolist()
+        history.append({
+            'Iteración': len(history), 
+            'x1': x_list[0], 
+            'x2': x_list[1], 
+            'f(x)': func(x_list), 
+            '||∇f||': np.linalg.norm(grad(x_list))
+        })
+
+    # Mapeo preciso a algoritmos de scipy
+    method_map = {
+        "Método del Gradiente": "CG",           # Steepest Descent aproximado mediante Conjugate Gradient
+        "Método del Gradiente Conjugado": "CG", # Algoritmo de Fletcher-Reeves
+        "Método de Newton": "Newton-CG"         # Newton-Conjugate Gradient
+    }
+
+    # Ejecución
+    if method == "Método de Newton":
+        minimize(func, x0, method=method_map[method], jac=grad, hess=hess, callback=callback, options={'maxiter': max_iter, 'xtol': tol})
+    else:
+        minimize(func, x0, method=method_map[method], jac=grad, callback=callback, options={'maxiter': max_iter, 'gtol': tol})
         
-        history.append({'Iteración': i, 'f(x)': f_val, '||∇f||': norm_g, 'x': x.copy()})
-        
-        if norm_g < tol: break
-        x = x - alpha * g_val
     return pd.DataFrame(history)
 
-# Navegación
+# Estado de navegación
 if 'page' not in st.session_state: st.session_state.page = "login"
 
 if st.session_state.page == "login":
-    st.title("👤 Registro")
-    name = st.text_input("Nombre:")
-    if st.button("Ingresar") and name:
-        st.session_state.user_name = name
-        st.session_state.page = "config"
-        st.rerun()
+    st.title("👤 Registro de Usuario")
+    name = st.text_input("Nombre de usuario:")
+    if st.button("Ingresar"):
+        if name:
+            st.session_state.user_name = name
+            st.session_state.page = "config"
+            st.rerun()
 
 elif st.session_state.page == "config":
-    st.title(f"Configuración - {st.session_state.user_name}")
-    func_input = st.text_input("Función f(x1, x2)", "x1**2 + x2**2")
-    x0_input = st.text_input("Punto inicial (x1, x2)", "1.0, 1.0")
-    alpha = st.number_input("Paso (alpha)", 0.01)
+    st.title(f"⚙️ Configuración - {st.session_state.user_name}")
+    func_input = st.text_input("Función f(x1, x2)", value="x1^2 + x2^2")
+    start_point = st.text_input("Punto inicial (x1, x2)", value="2.0, 2.0")
+    
+    # Lista desplegable de métodos
+    method = st.selectbox("Selecciona el método de optimización:", 
+                          ["Método del Gradiente", "Método del Gradiente Conjugado", "Método de Newton"])
+    
+    max_iter = st.number_input("Iteraciones Máximas", value=50)
+    tol = st.number_input("Tolerancia", value=1e-5, format="%.1e")
     
     if st.button("Ejecutar"):
-        vars_list = sp.symbols('x1 x2')
-        expr = parse_function(func_input, vars_list)
-        x0 = [float(i) for i in x0_input.split(',')]
-        
-        if expr:
-            st.session_state.df = optimize_manual(expr, vars_list, x0, 1e-6, 100, alpha)
-            st.session_state.page = "results"
-            st.rerun()
-        else:
-            st.error("Error en la sintaxis. Asegúrate de usar x1 y x2.")
+        vars_sym = sp.symbols('x1 x2')
+        expr = parse_function(func_input, vars_sym)
+        try:
+            x0 = [float(i.strip()) for i in start_point.split(',')]
+            if expr and len(x0) == 2:
+                st.session_state.results = optimize_wrapper(method, expr, vars_sym, x0, tol, max_iter)
+                st.session_state.page = "results"
+                st.rerun()
+            else:
+                st.error("Error: Revisa la sintaxis de la función o los puntos iniciales.")
+        except:
+            st.error("Error al procesar los datos de entrada.")
 
 elif st.session_state.page == "results":
-    st.title("Resultados")
-    st.dataframe(st.session_state.df)
+    st.title("📊 Resultados")
     if st.button("Volver"):
         st.session_state.page = "config"
         st.rerun()
+    st.dataframe(st.session_state.results)
