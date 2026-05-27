@@ -7,6 +7,8 @@ import re
 # Configuración de página
 st.set_page_config(page_title="Optimizador Web", layout="wide")
 
+# --- Funciones Matemáticas (Mantenidas de tu código original) ---
+
 def parse_function(func_str, vars_list):
     try:
         func_str = func_str.replace('^', '**')
@@ -115,47 +117,83 @@ def run_conjugate_gradient(expr, vars_sym, x0, max_iter):
             r = new_r
     return pd.DataFrame(history)
 
-st.title("⚙️ Optimizador Web")
+# --- Interfaces de Usuario (Páginas) ---
 
-n_vars = st.number_input("Número de variables (n)", min_value=1, max_value=10, value=1)
-vars_names = [f"x{i+1}" for i in range(n_vars)]
-func_input = st.text_input(f"Función f({', '.join(vars_names)})", value="x1**4 - 3*x1**3 + 2")
-start_point = st.text_input(f"Punto inicial (separado por comas)", value="0.5")
-method = st.selectbox("Selecciona el método:", ["Método del Gradiente", "Método de Newton", "Método del Gradiente Conjugado"])
-
-alpha_type = "Fijo"
-alpha_val = 0.01
-wolfe_params = {'alpha_init': 1.0, 'c1': 1e-4, 'rho': 0.5}
-
-if method == "Método del Gradiente":
-    alpha_type = st.radio("Tipo de alfa:", ["Fijo", "Variable", "Wolfe (Armijo)"])
-    if alpha_type == "Fijo":
-        alpha_val = st.number_input("Tamaño del paso (alfa):", value=0.01, format="%.4f")
-    elif alpha_type == "Wolfe (Armijo)":
-        wolfe_params['alpha_init'] = st.number_input("Alfa inicial:", value=1.0, format="%.4f")
-        wolfe_params['rho'] = st.number_input("Rho (factor de reducción):", value=0.5, format="%.4f")
-        wolfe_params['c1'] = st.number_input("C1 (constante Armijo):", value=1e-4, format="%.4e")
-
-max_iter = st.number_input("Iteraciones", value=10)
-
-if st.button("Ejecutar"):
-    vars_sym = sp.symbols(' '.join(vars_names))
-    if n_vars == 1: vars_sym = [vars_sym]
-    expr = parse_function(func_input, vars_sym)
+def login_page():
+    st.title("Bienvenido al Optimizador Web 🚀")
+    st.markdown("Por favor, ingresa tu nombre de usuario para continuar.")
     
-    try:
-        clean_str = re.sub(r'[^0-9.,-]', '', start_point)
-        x0 = [float(i) for i in clean_str.split(',') if i.strip()]
+    # Usamos un formulario para presionar "Enter" fácilmente
+    with st.form("login_form"):
+        username = st.text_input("Nombre de usuario:")
+        submitted = st.form_submit_button("Ingresar")
         
-        if expr is not None and len(x0) == n_vars:
-            if method == "Método del Gradiente":
-                results = run_gradient_descent(expr, vars_sym, x0, alpha_type, alpha_val, wolfe_params, int(max_iter))
-            elif method == "Método de Newton":
-                results = run_newton_method(expr, vars_sym, x0, int(max_iter))
+        if submitted:
+            if username.strip() != "":
+                # Guardamos el usuario en el estado de la sesión
+                st.session_state['username'] = username
+                st.rerun() # Recarga la app para mostrar la siguiente página
             else:
-                results = run_conjugate_gradient(expr, vars_sym, x0, int(max_iter))
-            st.dataframe(results)
-        else:
-            st.error("Error en las dimensiones o la función.")
-    except Exception as e:
-        st.error(f"Error: {e}")
+                st.error("Por favor, ingresa un nombre válido.")
+
+def main_app():
+    # Botón lateral para cerrar sesión
+    with st.sidebar:
+        st.write(f"👤 Usuario: **{st.session_state['username']}**")
+        if st.button("Cerrar sesión"):
+            st.session_state.pop('username')
+            st.rerun()
+
+    st.title("⚙️ Optimizador Web")
+    st.markdown(f"Hola **{st.session_state['username']}**, configura tu algoritmo a continuación:")
+
+    # Todo el código original de la interfaz del optimizador
+    n_vars = st.number_input("Número de variables (n)", min_value=1, max_value=10, value=1)
+    vars_names = [f"x{i+1}" for i in range(n_vars)]
+    func_input = st.text_input(f"Función f({', '.join(vars_names)})", value="x1**4 - 3*x1**3 + 2")
+    start_point = st.text_input(f"Punto inicial (separado por comas)", value="0.5")
+    method = st.selectbox("Selecciona el método:", ["Método del Gradiente", "Método de Newton", "Método del Gradiente Conjugado"])
+
+    alpha_type = "Fijo"
+    alpha_val = 0.01
+    wolfe_params = {'alpha_init': 1.0, 'c1': 1e-4, 'rho': 0.5}
+
+    if method == "Método del Gradiente":
+        alpha_type = st.radio("Tipo de alfa:", ["Fijo", "Variable", "Wolfe (Armijo)"])
+        if alpha_type == "Fijo":
+            alpha_val = st.number_input("Tamaño del paso (alfa):", value=0.01, format="%.4f")
+        elif alpha_type == "Wolfe (Armijo)":
+            wolfe_params['alpha_init'] = st.number_input("Alfa inicial:", value=1.0, format="%.4f")
+            wolfe_params['rho'] = st.number_input("Rho (factor de reducción):", value=0.5, format="%.4f")
+            wolfe_params['c1'] = st.number_input("C1 (constante Armijo):", value=1e-4, format="%.4e")
+
+    max_iter = st.number_input("Iteraciones", value=10)
+
+    if st.button("Ejecutar"):
+        vars_sym = sp.symbols(' '.join(vars_names))
+        if n_vars == 1: vars_sym = [vars_sym]
+        expr = parse_function(func_input, vars_sym)
+        
+        try:
+            clean_str = re.sub(r'[^0-9.,-]', '', start_point)
+            x0 = [float(i) for i in clean_str.split(',') if i.strip()]
+            
+            if expr is not None and len(x0) == n_vars:
+                if method == "Método del Gradiente":
+                    results = run_gradient_descent(expr, vars_sym, x0, alpha_type, alpha_val, wolfe_params, int(max_iter))
+                elif method == "Método de Newton":
+                    results = run_newton_method(expr, vars_sym, x0, int(max_iter))
+                else:
+                    results = run_conjugate_gradient(expr, vars_sym, x0, int(max_iter))
+                st.dataframe(results)
+            else:
+                st.error("Error en las dimensiones o la función. Revisa que el punto inicial tenga la misma cantidad de variables.")
+        except Exception as e:
+            st.error(f"Error: {e}")
+
+# --- Lógica principal de enrutamiento ---
+
+if 'username' not in st.session_state:
+    login_page()
+else:
+    main_app()
