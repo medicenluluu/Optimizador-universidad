@@ -43,11 +43,6 @@ def run_gradient_descent(expr, vars_sym, x0, alpha_type, alpha_val, wolfe_params
         if k < max_iter:
             if alpha_type == "Fijo":
                 alpha = alpha_val
-            elif alpha_type == "Variable":
-                # Búsqueda lineal simple (Backtracking básico)
-                alpha = 0.5
-                while f_lambdified(*(curr_x - alpha * grad_val)) > f_val and alpha > 1e-6:
-                    alpha *= 0.5
             else: # Condición de Wolfe (Armijo)
                 alpha = wolfe_params['alpha_init']
                 c1 = wolfe_params['c1']
@@ -159,7 +154,7 @@ def main_app():
     wolfe_params = {'alpha_init': 1.0, 'c1': 1e-4, 'rho': 0.5}
 
     if method == "Método del Gradiente":
-        alpha_type = st.radio("Tipo de alfa:", ["Fijo", "Variable", "Wolfe (Armijo)"])
+        alpha_type = st.radio("Tipo de alfa:", ["Fijo", "Wolfe (Armijo)"])
         if alpha_type == "Fijo":
             alpha_val = st.number_input("Tamaño del paso (alfa):", value=0.01, format="%.4f")
         elif alpha_type == "Wolfe (Armijo)":
