@@ -43,16 +43,37 @@ def run_gradient_descent(expr, vars_sym, x0, alpha_type, alpha_val, wolfe_params
         if k < max_iter:
             if alpha_type == "Fijo":
                 alpha = alpha_val
-            else: # Condición de Wolfe (Armijo)
+            else: # Condiciones de Wolfe (Armijo y opcionalmente Curvatura)
                 alpha = wolfe_params['alpha_init']
                 c1 = wolfe_params['c1']
                 rho = wolfe_params['rho']
+                use_curv = wolfe_params.get('use_curvature', False)
+                theta = wolfe_params.get('theta', 0.9)
                 
-                # Primera condición de Wolfe: f(x + a*p) <= f(x) + c1 * a * grad(f)^T * p
-                # Donde p = -grad(f)
                 direction = -grad_val
-                while f_lambdified(*(curr_x + alpha * direction)) > (f_val + c1 * alpha * np.dot(grad_val, direction)):
-                    alpha *= rho
+                
+                # Búsqueda de línea con límite de iteraciones para evitar bucles infinitos
+                for _ in range(50):
+                    new_x = curr_x + alpha * direction
+                    f_new = f_lambdified(*new_x) if len(vars_sym) > 1 else f_lambdified(new_x[0])
+                    
+                    # 1. Condición de Armijo (descenso suficiente)
+                    armijo_cumple = f_new <= (f_val + c1 * alpha * np.dot(grad_val, direction))
+                    
+                    if not armijo_cumple:
+                        alpha *= rho # Reducir paso si no cumple Armijo
+                    else:
+                        if use_curv:
+                            # 2. Condición de Curvatura
+                            grad_new_val = np.array([g(*new_x) for g in grad_lambdified])
+                            curv_cumple = np.dot(grad_new_val, direction) >= theta * np.dot(grad_val, direction)
+                            
+                            if not curv_cumple:
+                                alpha *= 1.5 # Incrementar el paso si es demasiado corto
+                            else:
+                                break # Cumple ambas condiciones
+                        else:
+                            break # Solo evaluamos Armijo, así que terminamos aquí
             
             curr_x = curr_x - alpha * grad_val
             
@@ -151,7 +172,7 @@ def main_app():
 
     alpha_type = "Fijo"
     alpha_val = 0.01
-    wolfe_params = {'alpha_init': 1.0, 'c1': 1e-4, 'rho': 0.5}
+    wolfe_params = {'alpha_init': 1.0, 'c1': 1e-4, 'rho': 0.5, 'use_curvature': False, 'theta': 0.9}
 
     if method == "Método del Gradiente":
         alpha_type = st.radio("Tipo de alfa:", ["Fijo", "Wolfe (Armijo)"])
@@ -161,6 +182,12 @@ def main_app():
             wolfe_params['alpha_init'] = st.number_input("Alfa inicial:", value=1.0, format="%.4f")
             wolfe_params['rho'] = st.number_input("Rho (factor de reducción):", value=0.5, format="%.4f")
             wolfe_params['c1'] = st.number_input("C1 (constante Armijo):", value=1e-4, format="%.4e")
+            
+            # --- NUEVO: Lista desplegable para curvatura ---
+            calc_curv = st.selectbox("¿Evaluar condición de curvatura?", ["No", "Sí"])
+            if calc_curv == "Sí":
+                wolfe_params['use_curvature'] = True
+                wolfe_params['theta'] = st.number_input("Parámetro Theta (Curvatura):", value=0.9, format="%.4f", min_value=0.0, max_value=1.0)
 
     max_iter = st.number_input("Iteraciones", value=10)
 
