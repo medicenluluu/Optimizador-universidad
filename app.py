@@ -83,7 +83,7 @@ st.markdown(
         box-shadow: 0 2px 4px rgba(30, 58, 138, 0.2) !important;
     }
 
-    /* FORZAR que las letras dentro de los botones sean siempre blancas (solución a tu problema) */
+    /* FORZAR que las letras dentro de los botones sean siempre blancas */
     .stButton > button *, [data-testid="stForm"] button * {
         color: #FFFFFF !important;
     }
@@ -113,6 +113,35 @@ st.markdown(
     /* Pequeño hack para corregir mensajes de alerta */
     [data-testid="stNotification"] {
         border-radius: 8px !important;
+    }
+
+    /* 10. Corrección visual para los iconos rotos de colapso/expansión de barra lateral */
+    [data-testid="collapsedControl"] *, 
+    [data-testid="stSidebarCollapseButton"] button * {
+        font-size: 0 !important;
+        color: transparent !important;
+    }
+
+    /* Botón de EXPANDIR (Flecha hacia la derecha) */
+    [data-testid="collapsedControl"]::after {
+        content: "→" !important;
+        font-size: 22px !important;
+        color: #1E293B !important;
+        font-family: 'Times New Roman', Times, serif !important;
+        font-weight: bold !important;
+        display: block !important;
+        text-align: center !important;
+    }
+
+    /* Botón de COLAPSAR (Flecha hacia la izquierda) */
+    [data-testid="stSidebarCollapseButton"] button::after {
+        content: "←" !important;
+        font-size: 22px !important;
+        color: #1E293B !important;
+        font-family: 'Times New Roman', Times, serif !important;
+        font-weight: bold !important;
+        display: block !important;
+        text-align: center !important;
     }
     </style>
     """,
@@ -195,7 +224,7 @@ def run_newton_method(expr, vars_sym, x0, max_iter):
     history = []
     f_lambdified = sp.lambdify(vars_sym, expr, 'numpy')
     grad_exprs = compute_gradient(expr, vars_sym)
-    hess_expr = compute_hessian(expr, vars_sym)
+    hess_expr = compute_hessian(expr, variables=vars_sym)
     
     grad_lambdified = sp.lambdify(vars_sym, grad_exprs, 'numpy')
     hess_lambdified = sp.lambdify(vars_sym, hess_expr, 'numpy')
@@ -272,7 +301,7 @@ def main_app():
             st.session_state.pop('username')
             st.rerun()
 
-    st.title("⚙️ Optimizador Web")
+    st.title("⚙️ Calculadora")
     st.markdown(f"Hola **{st.session_state['username']}**, configura tu algoritmo a continuación:")
 
     # Todo el código original de la interfaz del optimizador
