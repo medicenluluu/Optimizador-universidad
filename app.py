@@ -83,6 +83,11 @@ st.markdown(
         box-shadow: 0 2px 4px rgba(30, 58, 138, 0.2) !important;
     }
 
+    /* FORZAR que las letras dentro de los botones sean siempre blancas (solución a tu problema) */
+    .stButton > button *, [data-testid="stForm"] button * {
+        color: #FFFFFF !important;
+    }
+
     /* Efecto Hover para los botones */
     .stButton > button:hover, [data-testid="stForm"] button:hover, button[kind="primaryFormSubmit"]:hover {
         background-color: #1D4ED8 !important; /* Azul un poco más claro al posar el cursor */
@@ -90,6 +95,10 @@ st.markdown(
         transform: translateY(-1px) !important;
         box-shadow: 0 4px 6px rgba(30, 58, 138, 0.3) !important;
         cursor: pointer;
+    }
+    
+    .stButton > button:hover *, [data-testid="stForm"] button:hover * {
+        color: #FFFFFF !important;
     }
 
     /* 9. Tablas y Dataframes limpios y elegantes */
