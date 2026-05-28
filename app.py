@@ -7,49 +7,103 @@ import re
 # Configuración de página
 st.set_page_config(page_title="Calculadora", layout="wide")
 
-# --- Inyección de CSS para Personalización de Estilo (Fondo Baby Blue, Letras Negras y Times New Roman 16px) ---
+# --- Inyección de CSS para Personalización de Estilo Avanzada (Estética Armónica y Profesional) ---
 st.markdown(
     """
     <style>
-    /* Fondo de la aplicación principal y cabecera */
+    /* 1. Fondo general de la aplicación */
     .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"] {
-        background-color: #E0F2FE !important; /* Azul claro / Baby Blue */
+        background-color: #F0F7FF !important; /* Baby Blue optimizado, más limpio y luminoso */
     }
     
-    /* Fondo de la barra lateral (sidebar) para mantener coherencia */
+    /* 2. Fondo de la barra lateral (sidebar) */
     [data-testid="stSidebar"], [data-testid="stSidebar"] > div {
-        background-color: #D2E6F7 !important;
+        background-color: #E0F2FE !important; /* Contraste sutil con el fondo principal */
+        border-right: 1px solid #CBD5E1 !important;
     }
 
-    /* Tipografía Times New Roman y Color Negro para toda la aplicación */
-    html, body, [data-testid="stAppViewContainer"] *, [data-testid="stSidebar"] * {
+    /* 3. Tipografía Times New Roman para la estructura base */
+    html, body, [data-testid="stAppViewContainer"], [data-testid="stSidebar"] {
         font-family: 'Times New Roman', Times, serif !important;
-        color: #000000 !important; /* Letras negras */
     }
 
-    /* Tamaño de fuente de 16px para textos, etiquetas, entradas y tablas con letras negras */
-    p, span, label, input, button, select, textarea, table, td, th, li, div, .stMarkdown {
+    /* 4. Textos Generales, Etiquetas y Párrafos (Times New Roman 16px en Gris Oscuro para elegancia) */
+    p, span, label, li, .stMarkdown, [data-testid="stWidgetLabel"] p {
+        font-family: 'Times New Roman', Times, serif !important;
         font-size: 16px !important;
-        color: #000000 !important; /* Letras negras */
+        color: #1E293B !important; /* Gris pizarra muy oscuro para mejor legibilidad que el negro puro */
     }
     
-    /* Ajuste para títulos grandes manteniendo la tipografía y el color negro */
-    h1 {
-        font-size: 32px !important;
-        color: #000000 !important;
+    /* 5. Títulos con jerarquía visual fuerte y color destacado */
+    h1, h2, h3 {
+        font-family: 'Times New Roman', Times, serif !important;
+        color: #0F172A !important; /* Casi negro para máximo contraste */
+        font-weight: bold !important;
     }
-    h2 {
-        font-size: 24px !important;
-        color: #000000 !important;
-    }
-    h3 {
-        font-size: 20px !important;
-        color: #000000 !important;
+    h1 { font-size: 32px !important; margin-bottom: 15px !important; }
+    h2 { font-size: 24px !important; margin-bottom: 12px !important; }
+    h3 { font-size: 20px !important; }
+
+    /* 6. Diseño tipo "Tarjeta" para formularios y bloques de entrada */
+    [data-testid="stForm"], .stFormCreator {
+        background-color: #FFFFFF !important;
+        border: 1px solid #E2E8F0 !important;
+        border-radius: 12px !important;
+        padding: 24px !important;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03) !important;
     }
 
-    /* Asegurar que las entradas de texto y controles tengan texto negro */
-    input, select, textarea, [data-baseweb="select"] * {
-        color: #000000 !important;
+    /* 7. Inputs de texto, números y selectores (Fondo blanco, texto negro y legibilidad garantizada) */
+    input, select, textarea, [data-baseweb="select"], [data-baseweb="input"] {
+        background-color: #FFFFFF !important;
+        color: #0F172A !important; /* Texto negro legible */
+        font-family: 'Times New Roman', Times, serif !important;
+        font-size: 16px !important;
+        border: 1px solid #CBD5E1 !important;
+        border-radius: 8px !important;
+    }
+
+    /* Asegurar que el texto dentro de los campos activos o deseleccionados sea negro */
+    [data-testid="stWidgetLabel"] *, input *, select * {
+        color: #0F172A !important;
+    }
+
+    /* 8. Botones espectaculares con alto contraste (Azul marino con letras blancas) */
+    .stButton > button, [data-testid="stForm"] button, button[kind="primaryFormSubmit"] {
+        background-color: #1E3A8A !important; /* Azul marino profundo */
+        color: #FFFFFF !important; /* Texto blanco de alto contraste */
+        font-family: 'Times New Roman', Times, serif !important;
+        font-size: 16px !important;
+        font-weight: bold !important;
+        border: none !important;
+        border-radius: 8px !important;
+        padding: 8px 24px !important;
+        width: auto !important;
+        transition: all 0.2s ease-in-out !important;
+        box-shadow: 0 2px 4px rgba(30, 58, 138, 0.2) !important;
+    }
+
+    /* Efecto Hover para los botones */
+    .stButton > button:hover, [data-testid="stForm"] button:hover, button[kind="primaryFormSubmit"]:hover {
+        background-color: #1D4ED8 !important; /* Azul un poco más claro al posar el cursor */
+        color: #FFFFFF !important;
+        transform: translateY(-1px) !important;
+        box-shadow: 0 4px 6px rgba(30, 58, 138, 0.3) !important;
+        cursor: pointer;
+    }
+
+    /* 9. Tablas y Dataframes limpios y elegantes */
+    [data-testid="stDataFrame"] {
+        background-color: #FFFFFF !important;
+        border: 1px solid #E2E8F0 !important;
+        border-radius: 10px !important;
+        padding: 10px !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02) !important;
+    }
+    
+    /* Pequeño hack para corregir mensajes de alerta */
+    [data-testid="stNotification"] {
+        border-radius: 8px !important;
     }
     </style>
     """,
