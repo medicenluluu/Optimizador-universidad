@@ -5,7 +5,46 @@ import sympy as sp
 import re
 
 # Configuración de página
-st.set_page_config(page_title="Optimizador Web", layout="wide")
+st.set_page_config(page_title="Calculadora", layout="wide")
+
+# --- Inyección de CSS para Personalización de Estilo (Fondo Baby Blue y Letras Times New Roman 16px) ---
+st.markdown(
+    """
+    <style>
+    /* Fondo de la aplicación principal y cabecera */
+    .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"] {
+        background-color: #E0F2FE !important; /* Azul claro / Baby Blue */
+    }
+    
+    /* Fondo de la barra lateral (sidebar) para mantener coherencia */
+    [data-testid="stSidebar"], [data-testid="stSidebar"] > div {
+        background-color: #D2E6F7 !important;
+    }
+
+    /* Tipografía Times New Roman para toda la aplicación */
+    html, body, [data-testid="stAppViewContainer"] *, [data-testid="stSidebar"] * {
+        font-family: 'Times New Roman', Times, serif !important;
+    }
+
+    /* Tamaño de fuente de 16px para textos, etiquetas, entradas y tablas */
+    p, span, label, input, button, select, textarea, table, td, th, li, div, .stMarkdown {
+        font-size: 16px !important;
+    }
+    
+    /* Ajuste para títulos grandes manteniendo la tipografía */
+    h1 {
+        font-size: 32px !important;
+    }
+    h2 {
+        font-size: 24px !important;
+    }
+    h3 {
+        font-size: 20px !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
 # --- Funciones Matemáticas (Mantenidas de tu código original) ---
 
@@ -81,7 +120,7 @@ def run_gradient_descent(expr, vars_sym, x0, alpha_type, alpha_val, wolfe_params
 
 def run_newton_method(expr, vars_sym, x0, max_iter):
     history = []
-    f_lambdified = sp.lambdify(vars_sym, expr, 'numpy')
+    f_lambdified = sp.lambdified(vars_sym, expr, 'numpy')
     grad_exprs = compute_gradient(expr, vars_sym)
     hess_expr = compute_hessian(expr, vars_sym)
     
