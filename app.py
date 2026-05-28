@@ -7,7 +7,7 @@ import re
 # Configuración de página
 st.set_page_config(page_title="Calculadora", layout="wide")
 
-# --- Inyección de CSS para Personalización de Estilo (Fondo Baby Blue y Letras Times New Roman 16px) ---
+# --- Inyección de CSS para Personalización de Estilo (Fondo Baby Blue, Letras Negras y Times New Roman 16px) ---
 st.markdown(
     """
     <style>
@@ -21,25 +21,35 @@ st.markdown(
         background-color: #D2E6F7 !important;
     }
 
-    /* Tipografía Times New Roman para toda la aplicación */
+    /* Tipografía Times New Roman y Color Negro para toda la aplicación */
     html, body, [data-testid="stAppViewContainer"] *, [data-testid="stSidebar"] * {
         font-family: 'Times New Roman', Times, serif !important;
+        color: #000000 !important; /* Letras negras */
     }
 
-    /* Tamaño de fuente de 16px para textos, etiquetas, entradas y tablas */
+    /* Tamaño de fuente de 16px para textos, etiquetas, entradas y tablas con letras negras */
     p, span, label, input, button, select, textarea, table, td, th, li, div, .stMarkdown {
         font-size: 16px !important;
+        color: #000000 !important; /* Letras negras */
     }
     
-    /* Ajuste para títulos grandes manteniendo la tipografía */
+    /* Ajuste para títulos grandes manteniendo la tipografía y el color negro */
     h1 {
         font-size: 32px !important;
+        color: #000000 !important;
     }
     h2 {
         font-size: 24px !important;
+        color: #000000 !important;
     }
     h3 {
         font-size: 20px !important;
+        color: #000000 !important;
+    }
+
+    /* Asegurar que las entradas de texto y controles tengan texto negro */
+    input, select, textarea, [data-baseweb="select"] * {
+        color: #000000 !important;
     }
     </style>
     """,
@@ -120,7 +130,7 @@ def run_gradient_descent(expr, vars_sym, x0, alpha_type, alpha_val, wolfe_params
 
 def run_newton_method(expr, vars_sym, x0, max_iter):
     history = []
-    f_lambdified = sp.lambdified(vars_sym, expr, 'numpy')
+    f_lambdified = sp.lambdify(vars_sym, expr, 'numpy')
     grad_exprs = compute_gradient(expr, vars_sym)
     hess_expr = compute_hessian(expr, vars_sym)
     
