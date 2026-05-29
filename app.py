@@ -291,7 +291,7 @@ def run_new_ton_method(expr, vars_sym, x0, max_iter):
                 break
     return pd.DataFrame(history)
 
-def run_conjugate_gradient(expr, vars_sym, x0, max_iter):
+def run_conjugate_gradient(expr, vars_sym, x0, alpha_type, alpha_val, max_iter):
     history = []
     f_lambdified = sp.lambdify(vars_sym, expr, 'numpy')
     grad_exprs = compute_gradient(expr, vars_sym)
@@ -323,16 +323,19 @@ def run_conjugate_gradient(expr, vars_sym, x0, max_iter):
             if np.dot(grad_val, p) >= 0:
                 p = -grad_val
                 
-            # Búsqueda de línea por backtracking (Armijo) para calcular alfa óptimo
-            alpha = 1.0
-            c1 = 1e-4
-            rho = 0.5
-            for _ in range(50):
-                new_x = curr_x + alpha * p
-                f_new = f_lambdified(*new_x) if len(vars_sym) > 1 else f_lambdified(new_x[0])
-                if f_new <= f_val + c1 * alpha * np.dot(grad_val, p):
-                    break
-                alpha *= rho
+            if alpha_type == "Fijo":
+                alpha = alpha_val
+            else:
+                # Búsqueda de línea por backtracking (Armijo) para calcular alfa óptimo
+                alpha = alpha_val  # Usar el valor inicial configurado por el usuario
+                c1 = 1e-4
+                rho = 0.5
+                for _ in range(50):
+                    new_x = curr_x + alpha * p
+                    f_new = f_lambdified(*new_x) if len(vars_sym) > 1 else f_lambdified(new_x[0])
+                    if f_new <= f_val + c1 * alpha * np.dot(grad_val, p):
+                        break
+                    alpha *= rho
                 
             # Actualizamos el punto actual x_{k+1} = x_k + alpha * p_k
             next_x = curr_x + alpha * p
@@ -456,9 +459,14 @@ def main_app():
         method = st.selectbox("Método de optimización:", ["Método del Gradiente", "Método de Newton", "Método del Gradiente Conjugado"])
         max_iter = st.number_input("Número de iteraciones", value=10, min_value=1)
     
+    # Inicialización de variables para tamaño de paso
     alpha_type = "Fijo"
     alpha_val = 0.01
     wolfe_params = {'alpha_init': 1.0, 'c1': 1e-4, 'rho': 0.5, 'use_curvature': False, 'theta': 0.9}
+    
+    # Variables de control específicas para Gradiente Conjugado
+    cg_alpha_type = "Búsqueda de línea (Armijo)"
+    cg_alpha_val = 1.0
 
     with col_m2:
         if method == "Método del Gradiente":
@@ -478,6 +486,13 @@ def main_app():
                 if calc_curv == "Sí":
                     wolfe_params['use_curvature'] = True
                     wolfe_params['theta'] = st.number_input("Theta:", value=0.9, format="%.4f")
+                    
+        elif method == "Método del Gradiente Conjugado":
+            cg_alpha_type = st.radio("Cálculo del tamaño de paso (alfa) para GC:", ["Fijo", "Búsqueda de línea (Armijo)"], horizontal=True)
+            if cg_alpha_type == "Fijo":
+                cg_alpha_val = st.number_input("Valor de alfa (GC):", value=0.01, format="%.4f")
+            else:
+                cg_alpha_val = st.number_input("Alfa inicial para búsqueda (GC):", value=1.0, format="%.4f")
         else:
             st.info(f"El {method} utiliza búsqueda de línea dinámica o paso analítico propio.")
 
@@ -525,7 +540,7 @@ def main_app():
                 elif method == "Método de Newton":
                     results = run_new_ton_method(expr, vars_sym, x0, int(max_iter))
                 else:
-                    results = run_conjugate_gradient(expr, vars_sym, x0, int(max_iter))
+                    results = run_conjugate_gradient(expr, vars_sym, x0, cg_alpha_type, cg_alpha_val, int(max_iter))
                 
                 st.success("Optimización completada con éxito.")
                 st.markdown("#### Tabla del Historial de Iteraciones:")
