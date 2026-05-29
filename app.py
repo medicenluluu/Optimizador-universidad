@@ -135,19 +135,41 @@ st.markdown(
         box-shadow: 0 2px 4px rgba(0,0,0,0.02) !important;
     }
 
-    /* 10. Corrección iconos barra lateral */
-    [data-testid="collapsedControl"] *, 
-    [data-testid="stSidebarCollapseButton"] button * {
-        /* Se oculta forzosamente para evitar que se filtre el texto '_double_arrow_right' */
+    /* 10. Corrección definitiva iconos barra lateral (Adiós texto raro) */
+    /* Hacemos transparente el texto residual o botones nativos */
+    [data-testid="collapsedControl"],
+    [data-testid="stSidebarCollapseButton"],
+    [data-testid="stSidebarCollapseButton"] button {
+        color: transparent !important;
+        background-color: transparent !important;
+    }
+
+    /* Ocultamos los iconos SVG rotos de Streamlit */
+    [data-testid="collapsedControl"] svg,
+    [data-testid="stSidebarCollapseButton"] svg {
         display: none !important;
     }
     
-    [data-testid="collapsedControl"]::after {
-        content: "<- " !important; font-size: 22px !important; color: #1E293B !important; font-family: 'Times New Roman', Times, serif !important; font-weight: bold !important; display: block !important; text-align: center !important;
+    /* Símbolo para DESPLEGAR (Menú de 3 líneas) */
+    [data-testid="collapsedControl"]::before {
+        content: "☰" !important; 
+        font-size: 26px !important; 
+        color: #1E3A8A !important; 
+        font-family: sans-serif !important; 
+        font-weight: bold !important; 
+        visibility: visible !important; 
+        display: block !important;
     }
     
-    [data-testid="stSidebarCollapseButton"] button::after {
-        content: "<- " !important; font-size: 22px !important; color: #1E293B !important; font-family: 'Times New Roman', Times, serif !important; font-weight: bold !important; display: block !important; text-align: center !important;
+    /* Símbolo para CERRAR (Equis) */
+    [data-testid="stSidebarCollapseButton"] button::before {
+        content: "✖" !important; 
+        font-size: 20px !important; 
+        color: #1E3A8A !important; 
+        font-family: sans-serif !important; 
+        font-weight: bold !important; 
+        visibility: visible !important; 
+        display: block !important;
     }
     </style>
     """,
@@ -296,6 +318,7 @@ def login_page():
 def main_app():
     # Barra lateral
     with st.sidebar:
+        # El nombre de usuario que pediste que te dijera al desplegarse está aquí
         st.write(f"👤 Usuario: **{st.session_state['username']}**")
         if st.button("Cerrar sesión"):
             st.session_state.pop('username')
