@@ -138,14 +138,16 @@ st.markdown(
     /* 10. Corrección iconos barra lateral */
     [data-testid="collapsedControl"] *, 
     [data-testid="stSidebarCollapseButton"] button * {
-        font-size: 0 !important;
-        color: transparent !important;
+        /* Se oculta forzosamente para evitar que se filtre el texto '_double_arrow_right' */
+        display: none !important;
     }
+    
     [data-testid="collapsedControl"]::after {
-        content: "→" !important; font-size: 22px !important; color: #1E293B !important; font-family: 'Times New Roman', Times, serif !important; font-weight: bold !important; display: block !important; text-align: center !important;
+        content: "<- " !important; font-size: 22px !important; color: #1E293B !important; font-family: 'Times New Roman', Times, serif !important; font-weight: bold !important; display: block !important; text-align: center !important;
     }
+    
     [data-testid="stSidebarCollapseButton"] button::after {
-        content: "←" !important; font-size: 22px !important; color: #1E293B !important; font-family: 'Times New Roman', Times, serif !important; font-weight: bold !important; display: block !important; text-align: center !important;
+        content: "<- " !important; font-size: 22px !important; color: #1E293B !important; font-family: 'Times New Roman', Times, serif !important; font-weight: bold !important; display: block !important; text-align: center !important;
     }
     </style>
     """,
