@@ -4,8 +4,8 @@ import pandas as pd
 import sympy as sp
 import re
 
-# Configuración de página
-st.set_page_config(page_title="Calculadora Optimizadora", layout="wide")
+# Configuración de página (Forzamos la barra lateral siempre expandida al inicio)
+st.set_page_config(page_title="Calculadora Optimizadora", layout="wide", initial_sidebar_state="expanded")
 
 # --- Inyección de CSS para Personalización de Estilo Avanzada ---
 st.markdown(
@@ -54,7 +54,7 @@ st.markdown(
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03) !important;
     }
 
-    /* NUEVO: Caja de Instrucciones Elegante */
+    /* Caja de Instrucciones Elegante */
     .instructions-box {
         background-color: #FFFFFF;
         border-left: 5px solid #1E3A8A; /* Línea decorativa lateral */
@@ -135,46 +135,11 @@ st.markdown(
         box-shadow: 0 2px 4px rgba(0,0,0,0.02) !important;
     }
 
-    /* 10. Corrección definitiva iconos barra lateral (Adiós texto raro) */
-    /* Hacemos completamente invisible el texto de base y de cualquier hijo del botón nativo */
+    /* 10. Ocultar completamente los controles de abrir/cerrar sidebar */
+    /* Eliminamos el botón 'X' de la barra lateral y el control de expandir del header */
     [data-testid="collapsedControl"],
-    [data-testid="collapsedControl"] *,
-    [data-testid="stSidebarCollapseButton"] button,
-    [data-testid="stSidebarCollapseButton"] button * {
-        color: transparent !important;
-        font-size: 0px !important;
-        line-height: 0 !important;
-        background-color: transparent !important;
-    }
-
-    /* Ocultamos los iconos SVG rotos de Streamlit */
-    [data-testid="collapsedControl"] svg,
-    [data-testid="stSidebarCollapseButton"] svg {
+    [data-testid="stSidebarCollapseButton"] {
         display: none !important;
-    }
-    
-    /* Símbolo "X" para DESPLEGAR libre de ruidos */
-    [data-testid="collapsedControl"]::before {
-        content: "X" !important; 
-        font-size: 22px !important; 
-        color: #1E3A8A !important; 
-        font-family: Arial, sans-serif !important; 
-        font-weight: bold !important; 
-        visibility: visible !important; 
-        display: block !important;
-        cursor: pointer;
-    }
-    
-    /* Símbolo "X" para CERRAR libre de ruidos */
-    [data-testid="stSidebarCollapseButton"] button::before {
-        content: "X" !important; 
-        font-size: 22px !important; 
-        color: #1E3A8A !important; 
-        font-family: Arial, sans-serif !important; 
-        font-weight: bold !important; 
-        display: block !important;
-        visibility: visible !important;
-        cursor: pointer;
     }
     </style>
     """,
