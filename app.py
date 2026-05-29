@@ -136,21 +136,31 @@ st.markdown(
     }
 
     /* 10. Corrección definitiva iconos barra lateral (Adiós texto raro) */
-    /* Hacemos transparente el texto residual o botones nativos */
+    /* Hacemos completamente invisible el texto de base de los botones nativos */
     [data-testid="collapsedControl"],
-    [data-testid="stSidebarCollapseButton"],
     [data-testid="stSidebarCollapseButton"] button {
         color: transparent !important;
+        font-size: 0px !important;
         background-color: transparent !important;
     }
 
-    /* Ocultamos los iconos SVG rotos de Streamlit */
+    /* Ocultamos forzosamente todos los sub-elementos internos (divs, spans, svgs, etc.) para evitar fugas de texto */
+    [data-testid="collapsedControl"] div,
+    [data-testid="collapsedControl"] span,
     [data-testid="collapsedControl"] svg,
-    [data-testid="stSidebarCollapseButton"] svg {
+    [data-testid="stSidebarCollapseButton"] div,
+    [data-testid="stSidebarCollapseButton"] span,
+    [data-testid="stSidebarCollapseButton"] svg,
+    [data-testid="stSidebarCollapseButton"] button div,
+    [data-testid="stSidebarCollapseButton"] button span {
         display: none !important;
+        color: transparent !important;
+        font-size: 0px !important;
+        width: 0px !important;
+        height: 0px !important;
     }
     
-    /* Símbolo para DESPLEGAR (Menú de 3 líneas) */
+    /* Símbolo para DESPLEGAR (Menú de 3 líneas) libre de ruidos */
     [data-testid="collapsedControl"]::before {
         content: "☰" !important; 
         font-size: 26px !important; 
@@ -161,15 +171,15 @@ st.markdown(
         display: block !important;
     }
     
-    /* Símbolo para CERRAR (Equis) */
+    /* Símbolo para CERRAR (Equis) libre de ruidos */
     [data-testid="stSidebarCollapseButton"] button::before {
         content: "✖" !important; 
         font-size: 20px !important; 
         color: #1E3A8A !important; 
         font-family: sans-serif !important; 
         font-weight: bold !important; 
-        visibility: visible !important; 
         display: block !important;
+        visibility: visible !important;
     }
     </style>
     """,
