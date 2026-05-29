@@ -81,6 +81,28 @@ st.markdown(
         font-family: monospace !important;
     }
 
+    /* Tarjetas del Glosario de Métodos en Sidebar */
+    .method-card {
+        background-color: #FFFFFF !important;
+        padding: 14px;
+        border-radius: 8px;
+        border: 1px solid #CBD5E1;
+        margin-bottom: 12px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+    }
+    .method-card strong {
+        color: #1E3A8A !important;
+        font-size: 15px !important;
+        display: block;
+        margin-bottom: 4px;
+    }
+    .method-card span {
+        font-size: 13.5px !important;
+        color: #334155 !important;
+        line-height: 1.3 !important;
+        display: block;
+    }
+
     /* 7. Inputs de texto, números y selectores */
     input, select, textarea, [data-baseweb="select"], [data-baseweb="input"] {
         background-color: #FFFFFF !important;
@@ -214,7 +236,7 @@ def run_gradient_descent(expr, vars_sym, x0, alpha_type, alpha_val, wolfe_params
             
     return pd.DataFrame(history)
 
-def run_newton_method(expr, vars_sym, x0, max_iter):
+def run_new_ton_method(expr, vars_sym, x0, max_iter):
     history = []
     f_lambdified = sp.lambdify(vars_sym, expr, 'numpy')
     grad_exprs = compute_gradient(expr, vars_sym)
@@ -288,8 +310,46 @@ def login_page():
 def main_app():
     # Barra lateral
     with st.sidebar:
-        # El nombre de usuario que pediste que te dijera al desplegarse está aquí
         st.write(f"👤 Usuario: **{st.session_state['username']}**")
+        
+        st.markdown("<hr style='margin: 12px 0; border-color: #CBD5E1;'>", unsafe_allow_html=True)
+        st.markdown("### 💡 Diccionario de Métodos")
+        
+        # Tarjeta 1: Gradiente
+        st.markdown(
+            """
+            <div class="method-card">
+                <strong>📉 Método del Gradiente</strong>
+                <span>Como bajar un cerro a oscuras: miras dónde el piso se inclina más hacia abajo y das un paso ahí. Es el más intuitivo y simple, pero a veces toma rodeos lentos.</span>
+            </div>
+            """, 
+            unsafe_allow_html=True
+        )
+        
+        # Tarjeta 2: Newton
+        st.markdown(
+            """
+            <div class="method-card">
+                <strong>🚀 Método de Newton</strong>
+                <span>El "cerebrito": no solo mide la inclinación, sino la forma de la curvatura del suelo. Encuentra el fondo del valle súper rápido, pero calcular esa curvatura es costoso.</span>
+            </div>
+            """, 
+            unsafe_allow_html=True
+        )
+        
+        # Tarjeta 3: Gradiente Conjugado
+        st.markdown(
+            """
+            <div class="method-card">
+                <strong>🎯 Gradiente Conjugado</strong>
+                <span>El "estratega": baja sin repetir direcciones en las que ya buscó. Es el equilibrio ideal para dimensiones altas: avanza rápido y sin cansar la memoria del equipo.</span>
+            </div>
+            """, 
+            unsafe_allow_html=True
+        )
+        
+        st.markdown("<hr style='margin: 12px 0; border-color: #CBD5E1;'>", unsafe_allow_html=True)
+        
         if st.button("Cerrar sesión"):
             st.session_state.pop('username')
             st.rerun()
