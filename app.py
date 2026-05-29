@@ -293,24 +293,57 @@ def run_conjugate_gradient(expr, vars_sym, x0, max_iter):
     grad_lambdified = [sp.lambdify(vars_sym, g, 'numpy') for g in grad_exprs]
     
     curr_x = np.array(x0, dtype=float)
-    r = -np.array([g(*curr_x) for g in grad_lambdified])
-    p = r.copy()
+    
+    # Gradiente inicial y dirección de inicio p_0 = -g_0
+    grad_val = np.array([g(*curr_x) for g in grad_lambdified])
+    p = -grad_val.copy()
     
     for k in range(max_iter + 1):
         f_val = f_lambdified(*curr_x) if len(vars_sym) > 1 else f_lambdified(curr_x[0])
-        grad_val = -r 
-        entry = {'Iteración': k, 'f(x)': f_val, '||∇f(x)||': np.linalg.norm(grad_val)}
+        grad_val = np.array([g(*curr_x) for g in grad_lambdified])
+        norm_grad = np.linalg.norm(grad_val)
+        
+        entry = {'Iteración': k, 'f(x)': f_val, '||∇f(x)||': norm_grad}
         for i, val in enumerate(curr_x):
             entry[f'x_{i+1}'] = val
         history.append(entry)
         
         if k < max_iter:
-            alpha = 0.01 
-            curr_x = curr_x + alpha * p
-            new_r = -np.array([g(*curr_x) for g in grad_lambdified])
-            beta = np.dot(new_r, new_r) / np.dot(r, r)
-            p = new_r + beta * p
-            r = new_r
+            if norm_grad < 1e-6:
+                break  # Convergencia alcanzada
+            
+            # Regla de reinicio: Si no es una dirección de descenso, reiniciamos al gradiente negativo
+            if np.dot(grad_val, p) >= 0:
+                p = -grad_val
+                
+            # Búsqueda de línea por backtracking (Armijo) para calcular alfa óptimo
+            alpha = 1.0
+            c1 = 1e-4
+            rho = 0.5
+            for _ in range(50):
+                new_x = curr_x + alpha * p
+                f_new = f_lambdified(*new_x) if len(vars_sym) > 1 else f_lambdified(new_x[0])
+                if f_new <= f_val + c1 * alpha * np.dot(grad_val, p):
+                    break
+                alpha *= rho
+                
+            # Actualizamos el punto actual x_{k+1} = x_k + alpha * p_k
+            next_x = curr_x + alpha * p
+            
+            # Evaluamos el nuevo gradiente g_{k+1}
+            grad_next_val = np.array([g(*next_x) for g in grad_lambdified])
+            
+            # Fórmula de Fletcher-Reeves para Beta: beta = ||g_{k+1}||^2 / ||g_k||^2
+            denom = np.dot(grad_val, grad_val)
+            if denom < 1e-12:
+                beta = 0.0
+            else:
+                beta = np.dot(grad_next_val, grad_next_val) / denom
+                
+            # Siguiente dirección de búsqueda: p_{k+1} = -g_{k+1} + beta * p_k
+            p = -grad_next_val + beta * p
+            curr_x = next_x
+            
     return pd.DataFrame(history)
 
 
@@ -360,12 +393,12 @@ def main_app():
             unsafe_allow_html=True
         )
         
-        # Tarjeta 3: Gradiente Conjugado
+        # Tarjeta 3: Gradiente Conjugado (Fletcher-Reeves)
         st.markdown(
             """
             <div class="method-card">
-                <strong>🎯 Gradiente Conjugado</strong>
-                <span>El "estratega": baja sin repetir direcciones en las que ya buscó. Es el equilibrio ideal para dimensiones altas: avanza rápido y sin cansar la memoria del equipo.</span>
+                <strong>🎯 Gradiente Conjugado (Fletcher-Reeves)</strong>
+                <span>El "estratega": optimiza usando direcciones ortogonales (conjugadas) mediante la fórmula de Fletcher-Reeves. Evita repetir caminos explorados, usando búsqueda de línea exacta/Armijo para avanzar con máxima precisión.</span>
             </div>
             """, 
             unsafe_allow_html=True
@@ -439,7 +472,7 @@ def main_app():
                     wolfe_params['use_curvature'] = True
                     wolfe_params['theta'] = st.number_input("Theta:", value=0.9, format="%.4f")
         else:
-            st.info(f"El {method} no requiere configuración adicional de tamaño de paso aquí.")
+            st.info(f"El {method} utiliza búsqueda de línea dinámica o paso analítico propio.")
 
     st.markdown("<br>", unsafe_allow_html=True) # Espaciado estético
 
@@ -463,7 +496,7 @@ def main_app():
                 if method == "Método del Gradiente":
                     results = run_gradient_descent(expr, vars_sym, x0, alpha_type, alpha_val, wolfe_params, int(max_iter))
                 elif method == "Método de Newton":
-                    results = run_newton_method(expr, vars_sym, x0, int(max_iter))
+                    results = run_new_ton_method(expr, vars_sym, x0, int(max_iter))
                 else:
                     results = run_conjugate_gradient(expr, vars_sym, x0, int(max_iter))
                 
