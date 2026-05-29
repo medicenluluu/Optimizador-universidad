@@ -136,50 +136,45 @@ st.markdown(
     }
 
     /* 10. Corrección definitiva iconos barra lateral (Adiós texto raro) */
-    /* Hacemos completamente invisible el texto de base de los botones nativos */
+    /* Hacemos completamente invisible el texto de base y de cualquier hijo del botón nativo */
     [data-testid="collapsedControl"],
-    [data-testid="stSidebarCollapseButton"] button {
+    [data-testid="collapsedControl"] *,
+    [data-testid="stSidebarCollapseButton"] button,
+    [data-testid="stSidebarCollapseButton"] button * {
         color: transparent !important;
         font-size: 0px !important;
+        line-height: 0 !important;
         background-color: transparent !important;
     }
 
-    /* Ocultamos forzosamente todos los sub-elementos internos (divs, spans, svgs, etc.) para evitar fugas de texto */
-    [data-testid="collapsedControl"] div,
-    [data-testid="collapsedControl"] span,
+    /* Ocultamos los iconos SVG rotos de Streamlit */
     [data-testid="collapsedControl"] svg,
-    [data-testid="stSidebarCollapseButton"] div,
-    [data-testid="stSidebarCollapseButton"] span,
-    [data-testid="stSidebarCollapseButton"] svg,
-    [data-testid="stSidebarCollapseButton"] button div,
-    [data-testid="stSidebarCollapseButton"] button span {
+    [data-testid="stSidebarCollapseButton"] svg {
         display: none !important;
-        color: transparent !important;
-        font-size: 0px !important;
-        width: 0px !important;
-        height: 0px !important;
     }
     
-    /* Símbolo para DESPLEGAR (Menú de 3 líneas) libre de ruidos */
+    /* Símbolo "X" para DESPLEGAR libre de ruidos */
     [data-testid="collapsedControl"]::before {
-        content: "☰" !important; 
-        font-size: 26px !important; 
+        content: "X" !important; 
+        font-size: 22px !important; 
         color: #1E3A8A !important; 
-        font-family: sans-serif !important; 
+        font-family: Arial, sans-serif !important; 
         font-weight: bold !important; 
         visibility: visible !important; 
         display: block !important;
+        cursor: pointer;
     }
     
-    /* Símbolo para CERRAR (Equis) libre de ruidos */
+    /* Símbolo "X" para CERRAR libre de ruidos */
     [data-testid="stSidebarCollapseButton"] button::before {
-        content: "✖" !important; 
-        font-size: 20px !important; 
+        content: "X" !important; 
+        font-size: 22px !important; 
         color: #1E3A8A !important; 
-        font-family: sans-serif !important; 
+        font-family: Arial, sans-serif !important; 
         font-weight: bold !important; 
         display: block !important;
         visibility: visible !important;
+        cursor: pointer;
     }
     </style>
     """,
