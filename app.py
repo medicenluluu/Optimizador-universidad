@@ -195,6 +195,7 @@ st.markdown(
 def parse_function(func_str, vars_list):
     try:
         func_str = func_str.replace('^', '**')
+        # Reemplazar números seguidos directamente de letras (ej: 4x1 -> 4*x1)
         func_str = re.sub(r'(\d)([a-zA-Z])', r'\1*\2', func_str)
         expr = sp.sympify(func_str)
         return expr
@@ -217,10 +218,12 @@ def run_gradient_descent(expr, vars_sym, x0, alpha_type, alpha_val, wolfe_params
     
     for k in range(max_iter + 1):
         f_val = f_lambdified(*curr_x) if len(vars_sym) > 1 else f_lambdified(curr_x[0])
-        grad_val = np.array([g(*curr_x) for g in grad_lambdified])
+        grad_val = np.array([g(*curr_x) for g in grad_lambdified]) if len(vars_sym) > 1 else np.array([grad_lambdified[0](curr_x[0])])
         entry = {'Iteración': k, 'f(x)': f_val, '||∇f(x)||': np.linalg.norm(grad_val)}
         for i, val in enumerate(curr_x):
             entry[f'x_{i+1}'] = val
+        for i, val in enumerate(grad_val):
+            entry[f'g_{i+1}'] = val
         history.append(entry)
         
         if k < max_iter:
@@ -245,7 +248,7 @@ def run_gradient_descent(expr, vars_sym, x0, alpha_type, alpha_val, wolfe_params
                         alpha *= rho 
                     else:
                         if use_curv:
-                            grad_new_val = np.array([g(*new_x) for g in grad_lambdified])
+                            grad_new_val = np.array([g(*new_x) for g in grad_lambdified]) if len(vars_sym) > 1 else np.array([grad_lambdified[0](new_x[0])])
                             curv_cumple = np.dot(grad_new_val, direction) >= theta * np.dot(grad_val, direction)
                             
                             if not curv_cumple:
@@ -277,6 +280,8 @@ def run_new_ton_method(expr, vars_sym, x0, max_iter):
         entry = {'Iteración': k, 'f(x)': f_val, '||∇f(x)||': np.linalg.norm(grad_val)}
         for i, val in enumerate(curr_x):
             entry[f'x_{i+1}'] = val
+        for i, val in enumerate(grad_val):
+            entry[f'g_{i+1}'] = val
         history.append(entry)
         
         if k < max_iter:
@@ -295,17 +300,19 @@ def run_conjugate_gradient(expr, vars_sym, x0, max_iter):
     curr_x = np.array(x0, dtype=float)
     
     # Gradiente inicial y dirección de inicio p_0 = -g_0
-    grad_val = np.array([g(*curr_x) for g in grad_lambdified])
+    grad_val = np.array([g(*curr_x) for g in grad_lambdified]) if len(vars_sym) > 1 else np.array([grad_lambdified[0](curr_x[0])])
     p = -grad_val.copy()
     
     for k in range(max_iter + 1):
         f_val = f_lambdified(*curr_x) if len(vars_sym) > 1 else f_lambdified(curr_x[0])
-        grad_val = np.array([g(*curr_x) for g in grad_lambdified])
+        grad_val = np.array([g(*curr_x) for g in grad_lambdified]) if len(vars_sym) > 1 else np.array([grad_lambdified[0](curr_x[0])])
         norm_grad = np.linalg.norm(grad_val)
         
         entry = {'Iteración': k, 'f(x)': f_val, '||∇f(x)||': norm_grad}
         for i, val in enumerate(curr_x):
             entry[f'x_{i+1}'] = val
+        for i, val in enumerate(grad_val):
+            entry[f'g_{i+1}'] = val
         history.append(entry)
         
         if k < max_iter:
@@ -331,7 +338,7 @@ def run_conjugate_gradient(expr, vars_sym, x0, max_iter):
             next_x = curr_x + alpha * p
             
             # Evaluamos el nuevo gradiente g_{k+1}
-            grad_next_val = np.array([g(*next_x) for g in grad_lambdified])
+            grad_next_val = np.array([g(*next_x) for g in grad_lambdified]) if len(vars_sym) > 1 else np.array([grad_lambdified[0](next_x[0])])
             
             # Fórmula de Fletcher-Reeves para Beta: beta = ||g_{k+1}||^2 / ||g_k||^2
             denom = np.dot(grad_val, grad_val)
@@ -483,7 +490,7 @@ def main_app():
 
     # --- EJECUCIÓN ---
     if execute:
-        st.markdown("### 3. Resultados Iterativos")
+        st.markdown("### 3. Análisis Matemático y Resultados")
         vars_sym = sp.symbols(' '.join(vars_names))
         if n_vars == 1: vars_sym = [vars_sym]
         expr = parse_function(func_input, vars_sym)
@@ -493,6 +500,26 @@ def main_app():
             x0 = [float(i) for i in clean_str.split(',') if i.strip()]
             
             if expr is not None and len(x0) == n_vars:
+                # --- NUEVO: Mostrar Gradiente Analítico y Evaluación Inicial ---
+                grad_exprs = compute_gradient(expr, vars_sym)
+                
+                # Renderizado de fórmulas analíticas
+                st.markdown("#### Fórmulas Analíticas Calculadas:")
+                st.latex(r"f(" + ", ".join(vars_names) + r") = " + sp.latex(expr))
+                
+                grad_latex_elements = [rf"\frac{{\partial f}}{{\partial {v}}} = {sp.latex(g)}" for v, g in zip(vars_names, grad_exprs)]
+                st.latex(r"\nabla f = \begin{bmatrix} " + r" \\ ".join(grad_latex_elements) + r" \end{bmatrix}")
+                
+                # Evaluar gradiente en el punto inicial x0
+                grad_lambdified = [sp.lambdify(vars_sym, g, 'numpy') for g in grad_exprs]
+                curr_x = np.array(x0, dtype=float)
+                grad_at_x0 = np.array([g(*curr_x) for g in grad_lambdified]) if len(vars_sym) > 1 else np.array([grad_lambdified[0](curr_x[0])])
+                
+                st.markdown("#### Evaluación en el Punto Inicial:")
+                st.latex(r"x_0 = \begin{bmatrix} " + r" \\ ".join([f"{val:.4f}" for val in x0]) + r" \end{bmatrix}")
+                st.latex(r"\nabla f(x_0) = \begin{bmatrix} " + r" \\ ".join([f"{val:.4f}" for val in grad_at_x0]) + r" \end{bmatrix}")
+                
+                # Ejecutar algoritmo seleccionado
                 if method == "Método del Gradiente":
                     results = run_gradient_descent(expr, vars_sym, x0, alpha_type, alpha_val, wolfe_params, int(max_iter))
                 elif method == "Método de Newton":
@@ -500,7 +527,9 @@ def main_app():
                 else:
                     results = run_conjugate_gradient(expr, vars_sym, x0, int(max_iter))
                 
-                st.success("Cálculo completado exitosamente.")
+                st.success("Optimización completada con éxito.")
+                st.markdown("#### Tabla del Historial de Iteraciones:")
+                st.markdown("*(Nota: Las columnas `g_1, g_2, ...` representan los valores de los componentes individuales del gradiente $\\nabla f(x)$)*")
                 st.dataframe(results, use_container_width=True)
             else:
                 st.error("Error en las dimensiones o la función. Revisa que el punto inicial tenga la misma cantidad de variables.")
