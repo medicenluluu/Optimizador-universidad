@@ -5,9 +5,9 @@ import sympy as sp
 import re
 
 # Configuración de página
-st.set_page_config(page_title="Calculadora", layout="wide")
+st.set_page_config(page_title="Calculadora Optimizadora", layout="wide")
 
-# --- Inyección de CSS para Personalización de Estilo Avanzada (Estética Armónica y Profesional) ---
+# --- Inyección de CSS para Personalización de Estilo Avanzada ---
 st.markdown(
     """
     <style>
@@ -27,22 +27,23 @@ st.markdown(
         font-family: 'Times New Roman', Times, serif !important;
     }
 
-    /* 4. Textos Generales, Etiquetas y Párrafos (Times New Roman 16px en Gris Oscuro para elegancia) */
+    /* 4. Textos Generales, Etiquetas y Párrafos */
     p, span, label, li, .stMarkdown, [data-testid="stWidgetLabel"] p {
         font-family: 'Times New Roman', Times, serif !important;
         font-size: 16px !important;
-        color: #1E293B !important; /* Gris pizarra muy oscuro para mejor legibilidad que el negro puro */
+        color: #1E293B !important; 
     }
     
     /* 5. Títulos con jerarquía visual fuerte y color destacado */
-    h1, h2, h3 {
+    h1, h2, h3, h4 {
         font-family: 'Times New Roman', Times, serif !important;
-        color: #0F172A !important; /* Casi negro para máximo contraste */
+        color: #0F172A !important;
         font-weight: bold !important;
     }
     h1 { font-size: 32px !important; margin-bottom: 15px !important; }
     h2 { font-size: 24px !important; margin-bottom: 12px !important; }
-    h3 { font-size: 20px !important; }
+    h3 { font-size: 20px !important; margin-top: 20px !important;}
+    h4 { font-size: 18px !important; margin-bottom: 10px !important;}
 
     /* 6. Diseño tipo "Tarjeta" para formularios y bloques de entrada */
     [data-testid="stForm"], .stFormCreator {
@@ -53,44 +54,68 @@ st.markdown(
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03) !important;
     }
 
-    /* 7. Inputs de texto, números y selectores (Fondo blanco, texto negro y legibilidad garantizada) */
+    /* NUEVO: Caja de Instrucciones Elegante */
+    .instructions-box {
+        background-color: #FFFFFF;
+        border-left: 5px solid #1E3A8A; /* Línea decorativa lateral */
+        padding: 20px 25px;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        margin-bottom: 25px;
+        margin-top: 10px;
+    }
+    .instructions-box ol {
+        margin-bottom: 0;
+        padding-left: 20px;
+    }
+    .instructions-box li {
+        font-size: 15.5px !important;
+        margin-bottom: 6px;
+        color: #334155 !important;
+    }
+    .instructions-box code {
+        background-color: #F1F5F9;
+        color: #0F172A;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-family: monospace !important;
+    }
+
+    /* 7. Inputs de texto, números y selectores */
     input, select, textarea, [data-baseweb="select"], [data-baseweb="input"] {
         background-color: #FFFFFF !important;
-        color: #0F172A !important; /* Texto negro legible */
+        color: #0F172A !important; 
         font-family: 'Times New Roman', Times, serif !important;
         font-size: 16px !important;
         border: 1px solid #CBD5E1 !important;
         border-radius: 8px !important;
     }
 
-    /* Asegurar que el texto dentro de los campos activos o deseleccionados sea negro */
     [data-testid="stWidgetLabel"] *, input *, select * {
         color: #0F172A !important;
     }
 
-    /* 8. Botones espectaculares con alto contraste (Azul marino con letras blancas) */
+    /* 8. Botones espectaculares con alto contraste */
     .stButton > button, [data-testid="stForm"] button, button[kind="primaryFormSubmit"] {
-        background-color: #1E3A8A !important; /* Azul marino profundo */
-        color: #FFFFFF !important; /* Texto blanco de alto contraste */
+        background-color: #1E3A8A !important; 
+        color: #FFFFFF !important; 
         font-family: 'Times New Roman', Times, serif !important;
         font-size: 16px !important;
         font-weight: bold !important;
         border: none !important;
         border-radius: 8px !important;
         padding: 8px 24px !important;
-        width: auto !important;
+        width: 100% !important; /* Adaptado al ancho de columna */
         transition: all 0.2s ease-in-out !important;
         box-shadow: 0 2px 4px rgba(30, 58, 138, 0.2) !important;
     }
 
-    /* FORZAR que las letras dentro de los botones sean siempre blancas */
     .stButton > button *, [data-testid="stForm"] button * {
         color: #FFFFFF !important;
     }
 
-    /* Efecto Hover para los botones */
     .stButton > button:hover, [data-testid="stForm"] button:hover, button[kind="primaryFormSubmit"]:hover {
-        background-color: #1D4ED8 !important; /* Azul un poco más claro al posar el cursor */
+        background-color: #1D4ED8 !important; 
         color: #FFFFFF !important;
         transform: translateY(-1px) !important;
         box-shadow: 0 4px 6px rgba(30, 58, 138, 0.3) !important;
@@ -109,47 +134,25 @@ st.markdown(
         padding: 10px !important;
         box-shadow: 0 2px 4px rgba(0,0,0,0.02) !important;
     }
-    
-    /* Pequeño hack para corregir mensajes de alerta */
-    [data-testid="stNotification"] {
-        border-radius: 8px !important;
-    }
 
-    /* 10. Corrección visual para los iconos rotos de colapso/expansión de barra lateral */
+    /* 10. Corrección iconos barra lateral */
     [data-testid="collapsedControl"] *, 
     [data-testid="stSidebarCollapseButton"] button * {
         font-size: 0 !important;
         color: transparent !important;
     }
-
-    /* Botón de EXPANDIR (Flecha hacia la derecha) */
     [data-testid="collapsedControl"]::after {
-        content: "→" !important;
-        font-size: 22px !important;
-        color: #1E293B !important;
-        font-family: 'Times New Roman', Times, serif !important;
-        font-weight: bold !important;
-        display: block !important;
-        text-align: center !important;
+        content: "→" !important; font-size: 22px !important; color: #1E293B !important; font-family: 'Times New Roman', Times, serif !important; font-weight: bold !important; display: block !important; text-align: center !important;
     }
-
-    /* Botón de COLAPSAR (Flecha hacia la izquierda) */
     [data-testid="stSidebarCollapseButton"] button::after {
-        content: "←" !important;
-        font-size: 22px !important;
-        color: #1E293B !important;
-        font-family: 'Times New Roman', Times, serif !important;
-        font-weight: bold !important;
-        display: block !important;
-        text-align: center !important;
+        content: "←" !important; font-size: 22px !important; color: #1E293B !important; font-family: 'Times New Roman', Times, serif !important; font-weight: bold !important; display: block !important; text-align: center !important;
     }
     </style>
     """,
     unsafe_allow_html=True
 )
 
-# --- Funciones Matemáticas (Mantenidas de tu código original) ---
-
+# --- Funciones Matemáticas ---
 def parse_function(func_str, vars_list):
     try:
         func_str = func_str.replace('^', '**')
@@ -184,7 +187,7 @@ def run_gradient_descent(expr, vars_sym, x0, alpha_type, alpha_val, wolfe_params
         if k < max_iter:
             if alpha_type == "Fijo":
                 alpha = alpha_val
-            else: # Condiciones de Wolfe (Armijo y opcionalmente Curvatura)
+            else:
                 alpha = wolfe_params['alpha_init']
                 c1 = wolfe_params['c1']
                 rho = wolfe_params['rho']
@@ -193,28 +196,25 @@ def run_gradient_descent(expr, vars_sym, x0, alpha_type, alpha_val, wolfe_params
                 
                 direction = -grad_val
                 
-                # Búsqueda de línea con límite de iteraciones para evitar bucles infinitos
                 for _ in range(50):
                     new_x = curr_x + alpha * direction
                     f_new = f_lambdified(*new_x) if len(vars_sym) > 1 else f_lambdified(new_x[0])
                     
-                    # 1. Condición de Armijo (descenso suficiente)
                     armijo_cumple = f_new <= (f_val + c1 * alpha * np.dot(grad_val, direction))
                     
                     if not armijo_cumple:
-                        alpha *= rho # Reducir paso si no cumple Armijo
+                        alpha *= rho 
                     else:
                         if use_curv:
-                            # 2. Condición de Curvatura
                             grad_new_val = np.array([g(*new_x) for g in grad_lambdified])
                             curv_cumple = np.dot(grad_new_val, direction) >= theta * np.dot(grad_val, direction)
                             
                             if not curv_cumple:
-                                alpha *= 1.5 # Incrementar el paso si es demasiado corto
+                                alpha *= 1.5 
                             else:
-                                break # Cumple ambas condiciones
+                                break 
                         else:
-                            break # Solo evaluamos Armijo, así que terminamos aquí
+                            break 
             
             curr_x = curr_x - alpha * grad_val
             
@@ -274,65 +274,105 @@ def run_conjugate_gradient(expr, vars_sym, x0, max_iter):
             r = new_r
     return pd.DataFrame(history)
 
-# --- Interfaces de Usuario (Páginas) ---
 
+# --- Interfaces de Usuario ---
 def login_page():
     st.title("Bienvenido al Optimizador Web 🚀")
     st.markdown("Por favor, ingresa tu nombre de usuario para continuar.")
     
-    # Usamos un formulario para presionar "Enter" fácilmente
     with st.form("login_form"):
         username = st.text_input("Nombre de usuario:")
         submitted = st.form_submit_button("Ingresar")
         
         if submitted:
             if username.strip() != "":
-                # Guardamos el usuario en el estado de la sesión
                 st.session_state['username'] = username
-                st.rerun() # Recarga la app para mostrar la siguiente página
+                st.rerun()
             else:
                 st.error("Por favor, ingresa un nombre válido.")
 
 def main_app():
-    # Botón lateral para cerrar sesión
+    # Barra lateral
     with st.sidebar:
         st.write(f"👤 Usuario: **{st.session_state['username']}**")
         if st.button("Cerrar sesión"):
             st.session_state.pop('username')
             st.rerun()
 
+    # --- NUEVO: Cuadro de Instrucciones ---
+    st.markdown("""
+    <div class="instructions-box">
+        <h4>📖 Guía Paso a Paso</h4>
+        <ol>
+            <li><strong>Configura el problema:</strong> Indica cuántas variables tiene tu función.</li>
+            <li><strong>Ingresa tu función:</strong> Usa variables como <code>x1</code>, <code>x2</code>. Ej: <code>x1**4 - 3*x1**3 + 2</code>.</li>
+            <li><strong>Punto inicial:</strong> Define desde dónde arranca el algoritmo (separado por comas si hay más de 1 variable).</li>
+            <li><strong>Ajusta el algoritmo:</strong> Selecciona el método, su tolerancia (alfa) y las iteraciones máximas.</li>
+            <li><strong>Visualiza:</strong> Clic en <em>Ejecutar</em> para ver la evolución matemática iteración por iteración.</li>
+        </ol>
+    </div>
+    """, unsafe_allow_html=True)
+
     st.title("⚙️ Calculadora")
-    st.markdown(f"Hola **{st.session_state['username']}**, configura tu algoritmo a continuación:")
+    
+    # --- REDUCCIÓN DE TAMAÑOS (Uso de Columnas) ---
+    st.markdown("### 1. Definición del Problema")
+    
+    col1, col2, col3 = st.columns([1, 2, 1]) # Columnas proporcionadas
+    
+    with col1:
+        n_vars = st.number_input("Variables (n)", min_value=1, max_value=10, value=1)
+        vars_names = [f"x{i+1}" for i in range(n_vars)]
+    
+    with col2:
+        func_input = st.text_input(f"Función f({', '.join(vars_names)})", value="x1**4 - 3*x1**3 + 2")
+        
+    with col3:
+        start_point = st.text_input("Punto inicial (x0)", value="0.5")
 
-    # Todo el código original de la interfaz del optimizador
-    n_vars = st.number_input("Número de variables (n)", min_value=1, max_value=10, value=1)
-    vars_names = [f"x{i+1}" for i in range(n_vars)]
-    func_input = st.text_input(f"Función f({', '.join(vars_names)})", value="x1**4 - 3*x1**3 + 2")
-    start_point = st.text_input(f"Punto inicial (separado por comas)", value="0.5")
-    method = st.selectbox("Selecciona el método:", ["Método del Gradiente", "Método de Newton", "Método del Gradiente Conjugado"])
-
+    st.markdown("### 2. Parámetros del Algoritmo")
+    
+    col_m1, col_m2 = st.columns([1, 1])
+    
+    with col_m1:
+        method = st.selectbox("Método de optimización:", ["Método del Gradiente", "Método de Newton", "Método del Gradiente Conjugado"])
+        max_iter = st.number_input("Número de iteraciones", value=10, min_value=1)
+    
     alpha_type = "Fijo"
     alpha_val = 0.01
     wolfe_params = {'alpha_init': 1.0, 'c1': 1e-4, 'rho': 0.5, 'use_curvature': False, 'theta': 0.9}
 
-    if method == "Método del Gradiente":
-        alpha_type = st.radio("Tipo de alfa:", ["Fijo", "Wolfe (Armijo)"])
-        if alpha_type == "Fijo":
-            alpha_val = st.number_input("Tamaño del paso (alfa):", value=0.01, format="%.4f")
-        elif alpha_type == "Wolfe (Armijo)":
-            wolfe_params['alpha_init'] = st.number_input("Alfa inicial:", value=1.0, format="%.4f")
-            wolfe_params['rho'] = st.number_input("Rho (factor de reducción):", value=0.5, format="%.4f")
-            wolfe_params['c1'] = st.number_input("C1 (constante Armijo):", value=1e-4, format="%.4e")
+    with col_m2:
+        if method == "Método del Gradiente":
+            alpha_type = st.radio("Cálculo del tamaño de paso (alfa):", ["Fijo", "Wolfe (Armijo)"], horizontal=True)
             
-            # --- NUEVO: Lista desplegable para curvatura ---
-            calc_curv = st.selectbox("¿Evaluar condición de curvatura?", ["No", "Sí"])
-            if calc_curv == "Sí":
-                wolfe_params['use_curvature'] = True
-                wolfe_params['theta'] = st.number_input("Parámetro Theta (Curvatura):", value=0.9, format="%.4f", min_value=0.0, max_value=1.0)
+            if alpha_type == "Fijo":
+                alpha_val = st.number_input("Valor de alfa:", value=0.01, format="%.4f")
+            elif alpha_type == "Wolfe (Armijo)":
+                c_w1, c_w2 = st.columns(2)
+                with c_w1:
+                    wolfe_params['alpha_init'] = st.number_input("Alfa inicial:", value=1.0, format="%.4f")
+                    wolfe_params['rho'] = st.number_input("Rho (reducción):", value=0.5, format="%.4f")
+                with c_w2:
+                    wolfe_params['c1'] = st.number_input("C1 (Armijo):", value=1e-4, format="%.4e")
+                    calc_curv = st.selectbox("¿Condición curvatura?", ["No", "Sí"])
+                    
+                if calc_curv == "Sí":
+                    wolfe_params['use_curvature'] = True
+                    wolfe_params['theta'] = st.number_input("Theta:", value=0.9, format="%.4f")
+        else:
+            st.info(f"El {method} no requiere configuración adicional de tamaño de paso aquí.")
 
-    max_iter = st.number_input("Iteraciones", value=10)
+    st.markdown("<br>", unsafe_allow_html=True) # Espaciado estético
 
-    if st.button("Ejecutar"):
+    # Botón centrado usando columnas vacías
+    col_btn1, col_btn2, col_btn3 = st.columns([1, 1, 1])
+    with col_btn2:
+        execute = st.button("▶ Ejecutar Optimización")
+
+    # --- EJECUCIÓN ---
+    if execute:
+        st.markdown("### 3. Resultados Iterativos")
         vars_sym = sp.symbols(' '.join(vars_names))
         if n_vars == 1: vars_sym = [vars_sym]
         expr = parse_function(func_input, vars_sym)
@@ -348,14 +388,15 @@ def main_app():
                     results = run_newton_method(expr, vars_sym, x0, int(max_iter))
                 else:
                     results = run_conjugate_gradient(expr, vars_sym, x0, int(max_iter))
-                st.dataframe(results)
+                
+                st.success("Cálculo completado exitosamente.")
+                st.dataframe(results, use_container_width=True)
             else:
                 st.error("Error en las dimensiones o la función. Revisa que el punto inicial tenga la misma cantidad de variables.")
         except Exception as e:
-            st.error(f"Error: {e}")
+            st.error(f"Se encontró un error al procesar los datos: {e}")
 
-# --- Lógica principal de enrutamiento ---
-
+# Manejo de estado de la aplicación
 if 'username' not in st.session_state:
     login_page()
 else:
