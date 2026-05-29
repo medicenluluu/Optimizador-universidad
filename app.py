@@ -117,6 +117,29 @@ st.markdown(
         color: #0F172A !important;
     }
 
+    /* CORRECCIÓN DE LEGIBILIDAD: Forzar contraste en los popovers y listas desplegables flotantes */
+    div[data-baseweb="popover"],
+    div[data-baseweb="popover"] *,
+    div[role="listbox"],
+    div[role="listbox"] *,
+    ul[role="listbox"],
+    ul[role="listbox"] *,
+    li[role="option"],
+    li[role="option"] * {
+        background-color: #FFFFFF !important;
+        color: #0F172A !important; /* Letras oscuras legibles */
+        font-family: 'Times New Roman', Times, serif !important;
+    }
+
+    /* Efecto Hover para las opciones dentro de la lista desplegable */
+    li[role="option"]:hover,
+    li[role="option"]:hover *,
+    div[data-baseweb="popover"] li:hover,
+    div[data-baseweb="popover"] li:hover * {
+        background-color: #E0F2FE !important; /* Celeste sutil al pasar el mouse */
+        color: #1E3A8A !important; /* Texto azul destacado */
+    }
+
     /* 8. Botones espectaculares con alto contraste */
     .stButton > button, [data-testid="stForm"] button, button[kind="primaryFormSubmit"] {
         background-color: #1E3A8A !important; 
