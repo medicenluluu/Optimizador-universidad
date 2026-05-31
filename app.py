@@ -429,7 +429,7 @@ def main_app():
             """
             <div class="method-card">
                 <strong>🚀 Método de Newton</strong>
-                <span>El método de Newton para optimización es una técnica iterativa que busca encontrar el punto donde una función alcanza un valor mínimo o máximo. Para ello utiliza información sobre la pendiente de la función y su curvatura, lo que le permite estimar con mayor precisión hacia dónde debe moverse en cada paso. A partir de una solución inicial, genera aproximaciones sucesivas cada vez más cercanas al óptimo, logrando generalmente una convergencia muy rápida cuando el punto de partida es adecuado.o.</span>
+                <span>El método de Newton para optimización es una técnica iterativa que busca encontrar el mínimo o máximo de una función. Utiliza la pendiente y la curvatura para determinar la dirección y el tamaño del paso en cada iteración, permitiendo converger rápidamente hacia la solución óptima.</span>
             </div>
             """, 
             unsafe_allow_html=True
