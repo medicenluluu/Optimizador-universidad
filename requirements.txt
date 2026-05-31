@@ -4,3 +4,5 @@ pandas
 matplotlib
 sympy
 scipy>=1.0.0
+plotly
+
