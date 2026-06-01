@@ -6,9 +6,9 @@ import re
 import matplotlib.pyplot as plt
 
 # Configuración de página
-st.set_page_config(page_title="Calculadora Optimizadora", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="Calculadora de Optimización", layout="wide", initial_sidebar_state="expanded")
 
-# --- Inyección de CSS (Tu diseño original conservado) ---
+# --- Inyección de CSS (Diseño conservado) ---
 st.markdown(
     """
     <style>
@@ -44,7 +44,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# --- Funciones Matemáticas ---
+# --- Funciones de Matemáticas ---
 def parse_function(func_str, vars_list):
     try:
         func_str = func_str.replace('^', '**')
@@ -64,32 +64,30 @@ def compute_hessian(expr, variables):
     return sp.hessian(expr, variables)
 
 def calcular_error(curr_x, prev_x, norm_type):
-    # Permite elegir la norma requerida en problemas académicos
     if norm_type == "L_infinito (Máximo)":
         num = np.linalg.norm(curr_x - prev_x, ord=np.inf)
-        den = np.linalg.norm(prev_x, ord=np.inf)
+        den = np.linalg.norm(curr_x, ord=np.inf)
     elif norm_type == "L1 (Manhattan)":
         num = np.linalg.norm(curr_x - prev_x, ord=1)
-        den = np.linalg.norm(prev_x, ord=1)
-    else: # L2 Euclidiana
+        den = np.linalg.norm(curr_x, ord=1)
+    else: 
         num = np.linalg.norm(curr_x - prev_x)
-        den = np.linalg.norm(prev_x)
+        den = np.linalg.norm(curr_x)
     return num / (den if den != 0 else 1e-8)
 
 def evaluate_func_safe(f_lambdified, x, vars_sym):
-    # Protege contra evaluación de log(0) o raíces negativas usuales en estos problemas
     try:
         val = f_lambdified(*x) if len(vars_sym) > 1 else f_lambdified(x[0])
         if np.isnan(val) or np.isinf(val):
-            return 1e9 # Penalización alta si sale del dominio
+            return 1e9
         return val
     except Exception:
         return 1e9
 
-# --- Algoritmos Modificados para retornar logs detallados ---
+# --- Algoritmo de Optimización ---
 def run_gradient_descent(expr, vars_sym, x0, alpha_type, alpha_val, wolfe_params, max_iter, tol, norm_type):
     history = []
-    backtrack_log = [] # Para guardar el detalle del backtracking (Ítem a)
+    backtrack_log = [] 
     
     f_lambdified = sp.lambdify(vars_sym, expr, 'numpy')
     grad_exprs = compute_gradient(expr, vars_sym)
@@ -106,7 +104,7 @@ def run_gradient_descent(expr, vars_sym, x0, alpha_type, alpha_val, wolfe_params
             prev_x = np.array([history[-1][f'{v}'] for v in vars_sym])
             rel_error = calcular_error(curr_x, prev_x, norm_type)
 
-        entry = {'Iteración': k, 'f(x)': f_val, '||∇f(x)||': np.linalg.norm(grad_val), 'Error Rel. (%)': rel_error * 100}
+        entry = {'Iteración': k, 'C(x)': f_val, '||∇C(x)||': np.linalg.norm(grad_val), 'Error Rel. (%)': rel_error * 100}
         for i, val in enumerate(curr_x):
             entry[f'{vars_sym[i]}'] = val
         for i, val in enumerate(grad_val):
@@ -125,7 +123,6 @@ def run_gradient_descent(expr, vars_sym, x0, alpha_type, alpha_val, wolfe_params
                 c1 = wolfe_params['c1']
                 rho = wolfe_params['rho']
                 
-                # Búsqueda de línea con registro
                 for intento in range(50):
                     new_x = curr_x + alpha * direction
                     f_new = evaluate_func_safe(f_lambdified, new_x, vars_sym)
@@ -133,11 +130,10 @@ def run_gradient_descent(expr, vars_sym, x0, alpha_type, alpha_val, wolfe_params
                     limite_armijo = f_val + c1 * alpha * np.dot(grad_val, direction)
                     armijo_cumple = f_new <= limite_armijo
                     
-                    # Guardar log solo de las primeras iteraciones para reporte
                     if k < 3: 
                         backtrack_log.append({
                             'Iteración k': k, 'Intento': intento+1, 'Alfa (α)': alpha, 
-                            'f(x + αd)': f_new, 'Cota Armijo': limite_armijo, 'Cumple': armijo_cumple
+                            'C(x + αd)': f_new, 'Cota de Armijo': limite_armijo, 'Cumple': armijo_cumple
                         })
                     
                     if not armijo_cumple:
@@ -149,22 +145,22 @@ def run_gradient_descent(expr, vars_sym, x0, alpha_type, alpha_val, wolfe_params
             
     return pd.DataFrame(history), pd.DataFrame(backtrack_log), grad_exprs
 
-# --- Interfaces de Usuario ---
+# --- Interfaz de Usuario ---
 def main_app():
     with st.sidebar:
         st.write("👤 Usuario: **Invitado**")
         st.markdown("<hr style='margin: 12px 0; border-color: #CBD5E1;'>", unsafe_allow_html=True)
         st.markdown("### 💡 Diccionario de Métodos")
-        st.markdown("""<div class="method-card"><strong>📉 Método del Gradiente</strong><span>Útil para encontrar mínimos locales moviéndose en la dirección del gradiente negativo.</span></div>""", unsafe_allow_html=True)
-        st.markdown("""<div class="method-card"><strong>🚀 Búsqueda de Línea (Armijo)</strong><span>Ajusta dinámicamente el tamaño del paso para garantizar un descenso suficiente (Primera Condición de Wolfe).</span></div>""", unsafe_allow_html=True)
+        st.markdown("""<div class="method-card"><strong>📉 Método del Gradiente</strong><span>Fácil de usar para buscar mínimos locales moviéndose en la dirección del gradiente negativo.</span></div>""", unsafe_allow_html=True)
+        st.markdown("""<div class="method-card"><strong>🚀 Búsqueda en Línea (Armijo)</strong><span>Actualiza inteligentemente el tamaño de paso para asegurar un descenso suficiente (1ra Condición de Wolfe).</span></div>""", unsafe_allow_html=True)
 
     st.markdown("""
     <div class="instructions-box">
         <h4>📖 Resuelve tus Guías de Estudio</h4>
         <ol>
-            <li><strong>Variables Flexibles:</strong> Escribe <code>x, y</code> o <code>x1, x2</code> según tu problema.</li>
+            <li><strong>Variables Flexibles:</strong> Escribe <code>x, y</code> o <code>x1, x2</code> dependiendo de tu problema.</li>
             <li><strong>Manejo de logaritmos:</strong> Usa <code>ln()</code> o <code>log()</code> sin problema.</li>
-            <li><strong>Reporte Detallado:</strong> Ideal para copiar el paso a paso en tus pruebas (incluyendo Backtracking y Condiciones de Wolfe).</li>
+            <li><strong>Reporte Detallado:</strong> Excelente para copiar el paso a paso en los exámenes (incluye Backtracking y Condición de Wolfe).</li>
         </ol>
     </div>
     """, unsafe_allow_html=True)
@@ -180,7 +176,7 @@ def main_app():
         vars_names = [v.strip() for v in vars_input.split(',')]
     
     with col2:
-        func_input = st.text_input(f"Función f({', '.join(vars_names)})", value="ln(x**2 + y**2) - 2*x*y")
+        func_input = st.text_input(f"Función C({', '.join(vars_names)})", value="ln(x**2 + y**2) - 2*x*y")
         
     with col3:
         start_point = st.text_input("Punto inicial (x0, y0)", value="-1, 0")
@@ -198,7 +194,7 @@ def main_app():
         if alpha_type == "Fijo":
             alpha_val = st.number_input("Valor de alfa:", value=0.01, format="%.4f")
         else:
-            alpha_val = 0.0 # Placeholder
+            alpha_val = 0.0 
             wolfe_params = {}
             w_c1, w_c2 = st.columns(2)
             with w_c1:
@@ -211,7 +207,7 @@ def main_app():
     with col_m3:
         tolerancia = st.number_input("Tolerancia", value=0.001, format="%.4f")
         norm_type = st.selectbox("Norma para Error Relativo:", ["L_infinito (Máximo)", "L2 (Euclidiana)", "L1 (Manhattan)"])
-        show_exam_mode = st.checkbox("🔍 Mostrar Desglose Modo Examen", value=True)
+        show_exam_mode = st.checkbox("🔍 Mostrar Detalles en Modo Examen", value=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
 
@@ -231,59 +227,205 @@ def main_app():
             
             if expr is not None and len(x0) == len(vars_names):
                 
-                # --- Ejecución del Algoritmo ---
+                # Ejecutar algoritmo
                 if method == "Método del Gradiente":
                     results, bt_log, grad_exprs = run_gradient_descent(expr, vars_sym, x0, alpha_type, alpha_val, wolfe_params if alpha_type=="Wolfe (Armijo)" else None, int(max_iter), tolerancia, norm_type)
                 
-                # --- MODO EXAMEN: DESGLOSE PASO A PASO ---
+                # --- MODO EXAMEN: REPORTE PASO A PASO EXPRESO ---
                 if show_exam_mode:
-                    st.info("📚 **Desglose Académico (Iteración 0 a 1)**")
+                    st.info("📚 **Detalle Académico (Iteración 0 a 1)**")
                     
-                    st.markdown("**1. Gradiente Analítico:**")
-                    grad_latex = [rf"\frac{{\partial f}}{{\partial {v}}} = {sp.latex(g)}" for v, g in zip(vars_names, grad_exprs)]
-                    st.latex(r"\nabla f = \begin{bmatrix} " + r" \\ ".join(grad_latex) + r" \end{bmatrix}")
+                    st.markdown("### (a) Una iteración de descenso por gradiente con Backtracking")
                     
-                    x0_str = ", ".join([f"{v:.4f}" for v in x0])
-                    grad_x0_str = ", ".join([f"{results.iloc[0][f'g_{v}']:.4f}" for v in vars_sym])
-                    st.markdown(f"**Evaluación inicial:** $\\nabla f({x0_str}) = [{grad_x0_str}]^T$")
+                    st.markdown("**1. Gradiente de $C(" + ", ".join(vars_names) + ")$**")
+                    grad_latex = [rf"\frac{{\partial C}}{{\partial {v}}} = {sp.latex(g)}" for v, g in zip(vars_names, grad_exprs)]
+                    st.latex(r"\nabla C = \left( " + r", \quad ".join([sp.latex(g) for g in grad_exprs]) + r" \right)")
                     
-                    # Análisis del inciso (a)
+                    x0_str = ", ".join([f"{v:g}" for v in x0])
+                    x0_tuple = f"({x0_str})" if len(x0) > 1 else f"{x0[0]:g}"
+                    
+                    g0_vals = np.array([results.iloc[0][f'g_{v}'] for v in vars_sym])
+                    g0_str = ", ".join([f"{v:g}" for v in g0_vals])
+                    g0_tuple = f"({g0_str})" if len(g0_vals) > 1 else f"{g0_vals[0]:g}"
+                    
+                    st.markdown(f"Evaluando en ${x0_tuple}$:")
+                    st.latex(rf"\nabla C{x0_tuple} = {g0_tuple}")
+                    
+                    d0_vals = -g0_vals
+                    d0_str = ", ".join([f"{v:g}" for v in d0_vals])
+                    d0_tuple = f"({d0_str})" if len(d0_vals) > 1 else f"{d0_vals[0]:g}"
+                    
+                    st.markdown("La dirección de descenso es")
+                    st.latex(rf"d^{{(0)}} = -\nabla C(x^{{(0)}}) = {d0_tuple}")
+                    
                     if alpha_type == "Wolfe (Armijo)" and not bt_log.empty:
-                        st.markdown("**2. Búsqueda de Línea Backtracking (Resolución inciso a):**")
-                        st.dataframe(bt_log[bt_log['Iteración k'] == 0].drop(columns=['Iteración k']), use_container_width=True)
-                        alpha_final = bt_log[bt_log['Iteración k'] == 0].iloc[-1]['Alfa (α)']
-                        st.success(f"**Paso aceptado:** $\\alpha_0 = {alpha_final}$")
-                    
-                    # Análisis del inciso (b)
-                    if len(results) > 1:
-                        st.markdown(f"**3. Error Relativo (Resolución inciso b):**")
-                        err_0 = results.iloc[1]['Error Rel. (%)']
-                        st.markdown(f"Usando la norma seleccionada ({norm_type}), el error en la primera iteración es: **{err_0:.4f}%**")
-                    
-                    # Análisis del inciso (c) - Condición de Wolfe
-                    if len(results) > 1 and alpha_type == "Wolfe (Armijo)":
-                        st.markdown("**4. Verificación de 2da Condición de Wolfe (Curvatura) (Resolución inciso c):**")
-                        st.latex(r"\nabla C(\mathbf{x}^{(k)} + \alpha_m \mathbf{d}^{(k)})^T \mathbf{d}^{(k)} \ge \sigma \nabla C(\mathbf{x}^{(k)})^T \mathbf{d}^{(k)}")
+                        f0_val = results.iloc[0]['C(x)']
+                        dot_g0_d0 = np.dot(g0_vals, d0_vals)
                         
-                        g_k = np.array([results.iloc[0][f'g_{v}'] for v in vars_sym])
-                        d_k = -g_k
-                        g_k1 = np.array([results.iloc[1][f'g_{v}'] for v in vars_sym])
+                        row_0 = bt_log.iloc[0]
+                        a0 = row_0['Alfa (α)']
+                        st.markdown(f"**2. Probar $\\alpha_0 = {a0}$**")
                         
-                        lado_izq = np.dot(g_k1, d_k)
-                        lado_der = wolfe_sigma * np.dot(g_k, d_k)
+                        cand_0 = x0 + a0 * d0_vals
+                        cand_0_str = ", ".join([f"{v:g}" for v in cand_0])
+                        cand_0_tuple = f"({cand_0_str})" if len(cand_0) > 1 else f"{cand_0[0]:g}"
                         
-                        st.latex(rf"{lado_izq:.6f} \ge {wolfe_sigma} \times ({np.dot(g_k, d_k):.6f})")
-                        st.latex(rf"{lado_izq:.6f} \ge {lado_der:.6f}")
+                        st.markdown("Punto candidato:")
+                        st.latex(rf"x^{{(0)}} + \alpha_0 d^{{(0)}} = {x0_tuple} + {a0}{d0_tuple} = {cand_0_tuple}")
                         
-                        if lado_izq >= lado_der:
-                            st.success("✅ **La segunda condición de Wolfe SÍ se cumple.**")
+                        f_cand_0 = row_0['C(x + αd)']
+                        st.markdown("Valor de la función:")
+                        st.latex(rf"C{x0_tuple} = {f0_val:g}")
+                        st.latex(rf"C{cand_0_tuple} = {f_cand_0:g}")
+                        
+                        st.markdown("**3. Condición de Armijo**")
+                        c1_val = wolfe_params['c1']
+                        
+                        # Generando la fracción estilizada para beta
+                        if c1_val == 0.25:
+                            beta_tex = r"\frac14"
+                        elif c1_val == 0.5:
+                            beta_tex = r"\frac12"
                         else:
-                            st.error("❌ **La segunda condición de Wolfe NO se cumple.** (Es común que Armijo simple no la satisfaga sin cálculo de curvatura estricto).")
+                            beta_tex = f"{c1_val:g}"
+
+                        st.markdown(f"Con $\\beta = {beta_tex}$")
+                        st.latex(r"C(x^{(0)} + \alpha d^{(0)}) \le C(x^{(0)}) + \beta \alpha \nabla C(x^{(0)})^T d^{(0)}")
+                        
+                        st.markdown("Calculamos")
+                        st.latex(rf"\nabla C(x^{{(0)}})^T d^{{(0)}} = {g0_tuple} \cdot {d0_tuple} = {dot_g0_d0:g}")
+                        
+                        rhs_0 = f0_val + c1_val * a0 * dot_g0_d0
+                        st.markdown("Entonces el lado derecho vale")
+                        st.latex(rf"{f0_val:g} + {beta_tex}({a0})({dot_g0_d0:g}) = {rhs_0:g}")
+                        
+                        st.markdown("Debemos verificar")
+                        st.latex(rf"{f_cand_0:g} \le {rhs_0:g},")
+                        
+                        if row_0['Cumple']:
+                            st.markdown("lo cual es verdadero.")
+                            st.markdown("Por tanto el paso aceptado es")
+                            st.latex(rf"\boxed{{\alpha_1 = {a0}}}")
+                            st.markdown("y el nuevo iterado es")
+                            st.latex(rf"\boxed{{x^{{(1)}} = {cand_0_tuple}}}")
+                        else:
+                            st.markdown("lo cual es falso.\nPor tanto, se rechaza $\\alpha = " + str(a0) + "$.")
+                            
+                            st.markdown("**4. Backtracking**")
+                            rho_val = wolfe_params['rho']
+                            
+                            for i in range(1, len(bt_log)):
+                                row_i = bt_log.iloc[i]
+                                a_i = row_i['Alfa (α)']
+                                cand_i = x0 + a_i * d0_vals
+                                cand_i_str = ", ".join([f"{v:g}" for v in cand_i])
+                                cand_i_tuple = f"({cand_i_str})" if len(cand_i) > 1 else f"{cand_i[0]:g}"
+                                
+                                prev_a = bt_log.iloc[i-1]['Alfa (α)']
+                                st.latex(rf"\alpha = {rho_val}({prev_a}) = {a_i}.")
+                                st.markdown("Nuevo punto:")
+                                st.latex(rf"{x0_tuple} + {a_i}{d0_tuple} = {cand_i_tuple}.")
+                                
+                                f_cand_i = row_i['C(x + αd)']
+                                st.markdown("Valor de la función:")
+                                st.latex(rf"C{cand_i_tuple} = {f_cand_i:g}")
+                                
+                                rhs_i = f0_val + c1_val * a_i * dot_g0_d0
+                                st.markdown("Condición de Armijo:")
+                                st.latex(rf"{f0_val:g} + {beta_tex}({a_i})({dot_g0_d0:g}) = {rhs_i:g}.")
+                                
+                                st.markdown("Verificación:")
+                                st.latex(rf"{f_cand_i:g} \le {rhs_i:g},")
+                                
+                                if row_i['Cumple']:
+                                    st.markdown("verdadero.")
+                                    st.markdown("Por tanto el paso aceptado es")
+                                    st.latex(rf"\boxed{{\alpha_1 = {a_i}}}.")
+                                    st.markdown("y el nuevo iterado es")
+                                    st.latex(rf"\boxed{{x^{{(1)}} = {cand_i_tuple}}}.")
+                                    break
+                                else:
+                                    st.markdown("falso.")
+                                    
+                    if len(results) > 1:
+                        st.markdown(f"### (b) Error porcentual de la primera iteración usando $\\| \cdot \\|_{{\\text{{{norm_type.split(' ')[0]}}}}}$")
+                        
+                        if "infinito" in norm_type:
+                            norm_symbol = r"\| \cdot \|_\infty"
+                            ord_val = np.inf
+                        elif "L1" in norm_type:
+                            norm_symbol = r"\| \cdot \|_1"
+                            ord_val = 1
+                        else:
+                            norm_symbol = r"\| \cdot \|_2"
+                            ord_val = 2
+                            
+                        st.markdown("Usamos el error relativo aproximado")
+                        st.latex(rf"E = \frac{{\|x^{{(1)}} - x^{{(0)}}}\|_{norm_symbol.split('_')[1]}}}{{\|x^{{(1)}}}\|_{norm_symbol.split('_')[1]}}} \, 100\%.")
+                        
+                        x1_vals = np.array([results.iloc[1][f'{v}'] for v in vars_sym])
+                        diff_vals = x1_vals - x0
+                        
+                        diff_str = ", ".join([f"{v:g}" for v in diff_vals])
+                        diff_tuple = f"({diff_str})" if len(diff_vals) > 1 else f"{diff_vals[0]:g}"
+                        
+                        x1_str = ", ".join([f"{v:g}" for v in x1_vals])
+                        x1_tuple = f"({x1_str})" if len(x1_vals) > 1 else f"{x1_vals[0]:g}"
+                        
+                        st.markdown("Calculamos")
+                        st.latex(rf"x^{{(1)}} - x^{{(0)}} = {x1_tuple} - {x0_tuple} = {diff_tuple}.")
+                        
+                        num_val = np.linalg.norm(diff_vals, ord=ord_val)
+                        den_val = np.linalg.norm(x1_vals, ord=ord_val)
+                        
+                        st.markdown("Entonces")
+                        st.latex(rf"\|x^{{(1)}} - x^{{(0)}}}\|_{norm_symbol.split('_')[1]} = {num_val:g}.")
+                        st.markdown("Además,")
+                        st.latex(rf"\|x^{{(1)}}}\|_{norm_symbol.split('_')[1]} = {den_val:g}.")
+                        
+                        E_val = (num_val / den_val) * 100 if den_val != 0 else 0
+                        st.markdown("Por tanto")
+                        st.latex(rf"E = \frac{{{num_val:g}}}{{{den_val:g}}} \times 100 = {E_val:g}\%.")
+                        st.latex(rf"\boxed{{E = {E_val:g}\%}}")
+
+                    if len(results) > 1 and alpha_type == "Wolfe (Armijo)":
+                        sigma_val = wolfe_params.get('sigma', wolfe_sigma) 
+                        st.markdown(f"### (c) Segunda condición de Wolfe ($\sigma = {sigma_val}$)")
+                        st.markdown("La condición de curvatura es")
+                        st.latex(rf"\nabla C(x^{{(0)}} + \alpha_1 d^{{(0)}})^T d^{{(0)}} \ge \sigma \, \nabla C(x^{{(0)}})^T d^{{(0)}}.")
+                        
+                        st.markdown(f"**1. Gradiente en $x^{{(1)}} = {x1_tuple}$**")
+                        g1_vals = np.array([results.iloc[1][f'g_{v}'] for v in vars_sym])
+                        g1_str = ", ".join([f"{v:g}" for v in g1_vals])
+                        g1_tuple = f"({g1_str})" if len(g1_vals) > 1 else f"{g1_vals[0]:g}"
+                        
+                        st.latex(rf"\nabla C{x1_tuple} = {g1_tuple}")
+                        
+                        st.markdown("**2. Producto con la dirección**")
+                        dot_g1_d0 = np.dot(g1_vals, d0_vals)
+                        st.latex(rf"\nabla C(x^{{(1)}})^T d^{{(0)}} = {g1_tuple} \cdot {d0_tuple} = {dot_g1_d0:g}.")
+                        
+                        st.markdown("**3. Lado derecho**")
+                        dot_g0_d0 = np.dot(g0_vals, d0_vals)
+                        rhs_wolfe = sigma_val * dot_g0_d0
+                        st.latex(rf"\sigma \nabla C(x^{{(0)}})^T d^{{(0)}} = {sigma_val}({dot_g0_d0:g}) = {rhs_wolfe:g}.")
+                        
+                        st.markdown("**4. Verificación**")
+                        st.latex(rf"{dot_g1_d0:g} \ge {rhs_wolfe:g}.")
+                        
+                        if dot_g1_d0 >= rhs_wolfe:
+                            st.markdown("La desigualdad es verdadera.\nPor lo tanto,")
+                            st.latex(rf"\boxed{{\nabla C(x^{{(1)}})^T d^{{(0)}} = {dot_g1_d0:g} \ge {rhs_wolfe:g}}}")
+                            st.markdown(f"y sí se cumple la segunda condición de Wolfe para $\sigma = {sigma_val}$.")
+                        else:
+                            st.markdown("La desigualdad es falsa.\nPor lo tanto,")
+                            st.latex(rf"\boxed{{\nabla C(x^{{(1)}})^T d^{{(0)}} = {dot_g1_d0:g} < {rhs_wolfe:g}}}")
+                            st.markdown(f"y no se cumple la segunda condición de Wolfe para $\sigma = {sigma_val}$.")
                     
                     st.markdown("<hr>", unsafe_allow_html=True)
                 
                 # --- Tabla General ---
-                st.markdown("#### Tabla del Historial de Iteraciones General")
+                st.markdown("#### Tabla General del Historial de Iteraciones")
                 st.dataframe(results, use_container_width=True)
                 
             else:
