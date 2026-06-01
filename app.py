@@ -478,80 +478,58 @@ def main_app():
                             norm_symbol = r"\| \cdot \|_2"
                             ord_val = 2
                             
-                        st.markdown("Usamos el error relativo aproximado")
-                       if "infinito" in norm_type:
-    norm_latex = r"\infty"
-elif "L1" in norm_type:
-    norm_latex = "1"
-else:
-    norm_latex = "2"
+                                      st.markdown("Usamos el error relativo aproximado")
 
-st.latex(
-    rf"E = \frac{{\|x^{{(1)}} - x^{{(0)}}\|_{{{norm_latex}}}}}"
-    rf"{{\|x^{{(1)}}\|_{{{norm_latex}}}}}"
-    r"\times100\%"
-)
-                        
+                        if "infinito" in norm_type:
+                            norm_latex = r"\infty"
+                        elif "L1" in norm_type:
+                            norm_latex = "1"
+                        else:
+                            norm_latex = "2"
+
+                        st.latex(
+                            rf"E = \frac{{\|x^{{(1)}} - x^{{(0)}}\|_{{{norm_latex}}}}}"
+                            rf"{{\|x^{{(1)}}\|_{{{norm_latex}}}}}"
+                            r"\times100\%"
+                        )
+
                         x1_vals = np.array([results.iloc[1][f'{v}'] for v in vars_sym])
                         diff_vals = x1_vals - x0
-                        
+
                         diff_str = ", ".join([f"{v:g}" for v in diff_vals])
                         diff_tuple = f"({diff_str})" if len(diff_vals) > 1 else f"{diff_vals[0]:g}"
-                        
+
                         x1_str = ", ".join([f"{v:g}" for v in x1_vals])
                         x1_tuple = f"({x1_str})" if len(x1_vals) > 1 else f"{x1_vals[0]:g}"
-                        
+
                         st.markdown("Calculamos")
-                        st.latex(rf"x^{{(1)}} - x^{{(0)}} = {x1_tuple} - {x0_tuple} = {diff_tuple}.")
-                        
+                        st.latex(
+                            rf"x^{{(1)}} - x^{{(0)}} = {x1_tuple} - {x0_tuple} = {diff_tuple}"
+                        )
+
                         num_val = np.linalg.norm(diff_vals, ord=ord_val)
                         den_val = np.linalg.norm(x1_vals, ord=ord_val)
-                        
-                        st.markdown("Entonces")
-                        st.latex(rf"\|x^{{(1)}} - x^{{(0)}}}\|_{norm_symbol.split('_')[1]} = {num_val:g}.")
-                        st.markdown("Además,")
-                        st.latex(rf"\|x^{{(1)}}}\|_{norm_symbol.split('_')[1]} = {den_val:g}.")
-                        
-                        E_val = (num_val / den_val) * 100 if den_val != 0 else 0
-                        st.markdown("Por tanto")
-                        st.latex(rf"E = \frac{{{num_val:g}}}{{{den_val:g}}} \times 100 = {E_val:g}\%.")
-                        st.latex(rf"\boxed{{E = {E_val:g}\%}}")
 
-                    if len(results) > 1 and alpha_type == "Wolfe (Armijo)":
-                        sigma_val = wolfe_params.get('sigma', wolfe_sigma) 
-                        st.markdown(f"### (c) Segunda condición de Wolfe ($\sigma = {sigma_val}$)")
-                        st.markdown("La condición de curvatura es")
-                        st.latex(rf"\nabla C(x^{{(0)}} + \alpha_1 d^{{(0)}})^T d^{{(0)}} \ge \sigma \, \nabla C(x^{{(0)}})^T d^{{(0)}}.")
-                        
-                        st.markdown(f"**1. Gradiente en $x^{{(1)}} = {x1_tuple}$**")
-                        g1_vals = np.array([results.iloc[1][f'g_{v}'] for v in vars_sym])
-                        g1_str = ", ".join([f"{v:g}" for v in g1_vals])
-                        g1_tuple = f"({g1_str})" if len(g1_vals) > 1 else f"{g1_vals[0]:g}"
-                        
-                        st.latex(rf"\nabla C{x1_tuple} = {g1_tuple}")
-                        
-                        st.markdown("**2. Producto con la dirección**")
-                        dot_g1_d0 = np.dot(g1_vals, d0_vals)
-                        st.latex(rf"\nabla C(x^{{(1)}})^T d^{{(0)}} = {g1_tuple} \cdot {d0_tuple} = {dot_g1_d0:g}.")
-                        
-                        st.markdown("**3. Lado derecho**")
-                        dot_g0_d0 = np.dot(g0_vals, d0_vals)
-                        rhs_wolfe = sigma_val * dot_g0_d0
-                        st.latex(rf"\sigma \nabla C(x^{{(0)}})^T d^{{(0)}} = {sigma_val}({dot_g0_d0:g}) = {rhs_wolfe:g}.")
-                        
-                        st.markdown("**4. Verificación**")
-                        st.latex(rf"{dot_g1_d0:g} \ge {rhs_wolfe:g}.")
-                        
-                        if dot_g1_d0 >= rhs_wolfe:
-                            st.markdown("La desigualdad es verdadera.\nPor lo tanto,")
-                            st.latex(rf"\boxed{{\nabla C(x^{{(1)}})^T d^{{(0)}} = {dot_g1_d0:g} \ge {rhs_wolfe:g}}}")
-                            st.markdown(f"y sí se cumple la segunda condición de Wolfe para $\sigma = {sigma_val}$.")
-                        else:
-                            st.markdown("La desigualdad es falsa.\nPor lo tanto,")
-                            st.latex(rf"\boxed{{\nabla C(x^{{(1)}})^T d^{{(0)}} = {dot_g1_d0:g} < {rhs_wolfe:g}}}")
-                            st.markdown(f"y no se cumple la segunda condición de Wolfe para $\sigma = {sigma_val}$.")
-                    
-                    st.markdown("<hr>", unsafe_allow_html=True)
+                        st.markdown("Entonces")
+                        st.latex(
+                            rf"\|x^{{(1)}} - x^{{(0)}}\|_{{{norm_latex}}} = {num_val:g}"
+                        )
+
+                        st.markdown("Además,")
+
+                        st.latex(
+                            rf"\|x^{{(1)}}\|_{{{norm_latex}}} = {den_val:g}"
+                        )
+
+                        E_val = (num_val / den_val) * 100 if den_val != 0 else 0
+
+                        st.markdown("Por tanto")
+
+                        st.latex(
+                            rf"E = \frac{{{num_val:g}}}{{{den_val:g}}}\times100 = {E_val:g}\%"
+                        )
+
+                        st.latex(rf"\boxed{{E = {E_val:g}\%}}")
                 
                 # --- GRÁFICOS ORIGINALES REINTEGRADOS ---
                 col_g1, col_g2 = st.columns(2)
