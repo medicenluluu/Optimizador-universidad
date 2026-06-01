@@ -5,9 +5,35 @@ import sympy as sp
 import re
 import matplotlib.pyplot as plt
 
-# Configuración de página
+# 1. Configuración de página
 st.set_page_config(page_title="Calculadora de Optimización", layout="wide", initial_sidebar_state="expanded")
 
+# 2. Inyección de CSS (Tu código existente)
+st.markdown("""<style>...</style>""", unsafe_allow_html=True)
+
+# --- INSERTA AQUÍ EL BLOQUE DE LOGIN ---
+if "user_name" not in st.session_state:
+    st.session_state.user_name = ""
+
+if not st.session_state.user_name:
+    st.title("⚙️ Calculadora de Optimización Académica")
+    st.markdown("### Bienvenido")
+    st.write("Por favor, ingresa tu nombre para comenzar a usar la calculadora.")
+    
+    name_input = st.text_input("Tu nombre:")
+    if st.button("Entrar a la aplicación"):
+        if name_input:
+            st.session_state.user_name = name_input
+            st.rerun() 
+        else:
+            st.warning("Por favor, escribe un nombre primero.")
+    st.stop() # 'st.stop()' es más limpio que 'return' en el nivel superior
+# --- FIN BLOQUE DE LOGIN ---
+
+# 3. Aquí comienza el resto de tu lógica de la aplicación
+# (Funciones, cálculos, menús, etc.)
+with st.sidebar:
+    st.write(f"👤 Usuario: **{st.session_state.user_name}**")
 # --- Inyección de CSS (Diseño conservado) ---
 st.markdown(
     """
