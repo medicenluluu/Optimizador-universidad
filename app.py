@@ -5,188 +5,40 @@ import sympy as sp
 import re
 import matplotlib.pyplot as plt
 
-# Configuración de página (Forzamos la barra lateral siempre expandida al inicio)
+# Configuración de página
 st.set_page_config(page_title="Calculadora Optimizadora", layout="wide", initial_sidebar_state="expanded")
 
-# --- Inyección de CSS para Personalización de Estilo Avanzada ---
+# --- Inyección de CSS (Tu diseño original conservado) ---
 st.markdown(
     """
     <style>
-    /* 1. Fondo general de la aplicación */
-    .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"] {
-        background-color: #F0F7FF !important; /* Baby Blue optimizado, más limpio y luminoso */
-    }
-    
-    /* 2. Fondo de la barra lateral (sidebar) */
-    [data-testid="stSidebar"], [data-testid="stSidebar"] > div {
-        background-color: #E0F2FE !important; /* Contraste sutil con el fondo principal */
-        border-right: 1px solid #CBD5E1 !important;
-    }
-
-    /* 3. Tipografía Times New Roman para la estructura base */
-    html, body, [data-testid="stAppViewContainer"], [data-testid="stSidebar"] {
-        font-family: 'Times New Roman', Times, serif !important;
-    }
-
-    /* 4. Textos Generales, Etiquetas y Párrafos */
-    p, span, label, li, .stMarkdown, [data-testid="stWidgetLabel"] p {
-        font-family: 'Times New Roman', Times, serif !important;
-        font-size: 16px !important;
-        color: #1E293B !important; 
-    }
-    
-    /* 5. Títulos con jerarquía visual fuerte y color destacado */
-    h1, h2, h3, h4 {
-        font-family: 'Times New Roman', Times, serif !important;
-        color: #0F172A !important;
-        font-weight: bold !important;
-    }
+    .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"] { background-color: #F0F7FF !important; }
+    [data-testid="stSidebar"], [data-testid="stSidebar"] > div { background-color: #E0F2FE !important; border-right: 1px solid #CBD5E1 !important; }
+    html, body, [data-testid="stAppViewContainer"], [data-testid="stSidebar"] { font-family: 'Times New Roman', Times, serif !important; }
+    p, span, label, li, .stMarkdown, [data-testid="stWidgetLabel"] p { font-family: 'Times New Roman', Times, serif !important; font-size: 16px !important; color: #1E293B !important; }
+    h1, h2, h3, h4 { font-family: 'Times New Roman', Times, serif !important; color: #0F172A !important; font-weight: bold !important; }
     h1 { font-size: 32px !important; margin-bottom: 15px !important; }
     h2 { font-size: 24px !important; margin-bottom: 12px !important; }
     h3 { font-size: 20px !important; margin-top: 20px !important;}
     h4 { font-size: 18px !important; margin-bottom: 10px !important;}
-
-    /* 6. Diseño tipo "Tarjeta" para formularios y bloques de entrada */
-    [data-testid="stForm"], .stFormCreator {
-        background-color: #FFFFFF !important;
-        border: 1px solid #E2E8F0 !important;
-        border-radius: 12px !important;
-        padding: 24px !important;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03) !important;
-    }
-
-    /* Caja de Instrucciones Elegante */
-    .instructions-box {
-        background-color: #FFFFFF;
-        border-left: 5px solid #1E3A8A; /* Línea decorativa lateral */
-        padding: 20px 25px;
-        border-radius: 10px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-        margin-bottom: 25px;
-        margin-top: 10px;
-    }
-    .instructions-box ol {
-        margin-bottom: 0;
-        padding-left: 20px;
-    }
-    .instructions-box li {
-        font-size: 15.5px !important;
-        margin-bottom: 6px;
-        color: #334155 !important;
-    }
-    .instructions-box code {
-        background-color: #F1F5F9;
-        color: #0F172A;
-        padding: 2px 6px;
-        border-radius: 4px;
-        font-family: monospace !important;
-    }
-
-    /* Tarjetas del Glosario de Métodos en Sidebar */
-    .method-card {
-        background-color: #FFFFFF !important;
-        padding: 14px;
-        border-radius: 8px;
-        border: 1px solid #CBD5E1;
-        margin-bottom: 12px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
-    }
-    .method-card strong {
-        color: #1E3A8A !important;
-        font-size: 15px !important;
-        display: block;
-        margin-bottom: 4px;
-    }
-    .method-card span {
-        font-size: 13.5px !important;
-        color: #334155 !important;
-        line-height: 1.3 !important;
-        display: block;
-    }
-
-    /* 7. Inputs de texto, números y selectores */
-    input, select, textarea, [data-baseweb="select"], [data-baseweb="input"] {
-        background-color: #FFFFFF !important;
-        color: #0F172A !important; 
-        font-family: 'Times New Roman', Times, serif !important;
-        font-size: 16px !important;
-        border: 1px solid #CBD5E1 !important;
-        border-radius: 8px !important;
-    }
-
-    [data-testid="stWidgetLabel"] *, input *, select * {
-        color: #0F172A !important;
-    }
-
-    /* CORRECCIÓN DE LEGIBILIDAD: Forzar contraste en los popovers y listas desplegables flotantes */
-    div[data-baseweb="popover"],
-    div[data-baseweb="popover"] *,
-    div[role="listbox"],
-    div[role="listbox"] *,
-    ul[role="listbox"],
-    ul[role="listbox"] *,
-    li[role="option"],
-    li[role="option"] * {
-        background-color: #FFFFFF !important;
-        color: #0F172A !important; /* Letras oscuras legibles */
-        font-family: 'Times New Roman', Times, serif !important;
-    }
-
-    /* Efecto Hover para las opciones dentro de la lista desplegable */
-    li[role="option"]:hover,
-    li[role="option"]:hover *,
-    div[data-baseweb="popover"] li:hover,
-    div[data-baseweb="popover"] li:hover * {
-        background-color: #E0F2FE !important; /* Celeste sutil al pasar el mouse */
-        color: #1E3A8A !important; /* Texto azul destacado */
-    }
-
-    /* 8. Botones espectaculares con alto contraste */
-    .stButton > button, [data-testid="stForm"] button, button[kind="primaryFormSubmit"] {
-        background-color: #1E3A8A !important; 
-        color: #FFFFFF !important; 
-        font-family: 'Times New Roman', Times, serif !important;
-        font-size: 16px !important;
-        font-weight: bold !important;
-        border: none !important;
-        border-radius: 8px !important;
-        padding: 8px 24px !important;
-        width: 100% !important; /* Adaptado al ancho de columna */
-        transition: all 0.2s ease-in-out !important;
-        box-shadow: 0 2px 4px rgba(30, 58, 138, 0.2) !important;
-    }
-
-    .stButton > button *, [data-testid="stForm"] button * {
-        color: #FFFFFF !important;
-    }
-
-    .stButton > button:hover, [data-testid="stForm"] button:hover, button[kind="primaryFormSubmit"]:hover {
-        background-color: #1D4ED8 !important; 
-        color: #FFFFFF !important;
-        transform: translateY(-1px) !important;
-        box-shadow: 0 4px 6px rgba(30, 58, 138, 0.3) !important;
-        cursor: pointer;
-    }
-    
-    .stButton > button:hover *, [data-testid="stForm"] button:hover * {
-        color: #FFFFFF !important;
-    }
-
-    /* 9. Tablas y Dataframes limpios y elegantes */
-    [data-testid="stDataFrame"] {
-        background-color: #FFFFFF !important;
-        border: 1px solid #E2E8F0 !important;
-        border-radius: 10px !important;
-        padding: 10px !important;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.02) !important;
-    }
-
-    /* 10. Ocultar completamente los controles de abrir/cerrar sidebar */
-    /* Eliminamos el botón 'X' de la barra lateral y el control de expandir del header */
-    [data-testid="collapsedControl"],
-    [data-testid="stSidebarCollapseButton"] {
-        display: none !important;
-    }
+    [data-testid="stForm"], .stFormCreator { background-color: #FFFFFF !important; border: 1px solid #E2E8F0 !important; border-radius: 12px !important; padding: 24px !important; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03) !important; }
+    .instructions-box { background-color: #FFFFFF; border-left: 5px solid #1E3A8A; padding: 20px 25px; border-radius: 10px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); margin-bottom: 25px; margin-top: 10px; }
+    .instructions-box ol { margin-bottom: 0; padding-left: 20px; }
+    .instructions-box li { font-size: 15.5px !important; margin-bottom: 6px; color: #334155 !important; }
+    .instructions-box code { background-color: #F1F5F9; color: #0F172A; padding: 2px 6px; border-radius: 4px; font-family: monospace !important; }
+    .method-card { background-color: #FFFFFF !important; padding: 14px; border-radius: 8px; border: 1px solid #CBD5E1; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02); }
+    .method-card strong { color: #1E3A8A !important; font-size: 15px !important; display: block; margin-bottom: 4px; }
+    .method-card span { font-size: 13.5px !important; color: #334155 !important; line-height: 1.3 !important; display: block; }
+    input, select, textarea, [data-baseweb="select"], [data-baseweb="input"] { background-color: #FFFFFF !important; color: #0F172A !important; font-family: 'Times New Roman', Times, serif !important; font-size: 16px !important; border: 1px solid #CBD5E1 !important; border-radius: 8px !important; }
+    [data-testid="stWidgetLabel"] *, input *, select * { color: #0F172A !important; }
+    div[data-baseweb="popover"], div[data-baseweb="popover"] *, div[role="listbox"], div[role="listbox"] *, ul[role="listbox"], ul[role="listbox"] *, li[role="option"], li[role="option"] * { background-color: #FFFFFF !important; color: #0F172A !important; font-family: 'Times New Roman', Times, serif !important; }
+    li[role="option"]:hover, li[role="option"]:hover *, div[data-baseweb="popover"] li:hover, div[data-baseweb="popover"] li:hover * { background-color: #E0F2FE !important; color: #1E3A8A !important; }
+    .stButton > button, [data-testid="stForm"] button, button[kind="primaryFormSubmit"] { background-color: #1E3A8A !important; color: #FFFFFF !important; font-family: 'Times New Roman', Times, serif !important; font-size: 16px !important; font-weight: bold !important; border: none !important; border-radius: 8px !important; padding: 8px 24px !important; width: 100% !important; transition: all 0.2s ease-in-out !important; box-shadow: 0 2px 4px rgba(30, 58, 138, 0.2) !important; }
+    .stButton > button *, [data-testid="stForm"] button * { color: #FFFFFF !important; }
+    .stButton > button:hover, [data-testid="stForm"] button:hover, button[kind="primaryFormSubmit"]:hover { background-color: #1D4ED8 !important; color: #FFFFFF !important; transform: translateY(-1px) !important; box-shadow: 0 4px 6px rgba(30, 58, 138, 0.3) !important; cursor: pointer; }
+    .stButton > button:hover *, [data-testid="stForm"] button:hover * { color: #FFFFFF !important; }
+    [data-testid="stDataFrame"] { background-color: #FFFFFF !important; border: 1px solid #E2E8F0 !important; border-radius: 10px !important; padding: 10px !important; box-shadow: 0 2px 4px rgba(0,0,0,0.02) !important; }
+    [data-testid="collapsedControl"], [data-testid="stSidebarCollapseButton"] { display: none !important; }
     </style>
     """,
     unsafe_allow_html=True
@@ -196,11 +48,9 @@ st.markdown(
 def parse_function(func_str, vars_list):
     try:
         func_str = func_str.replace('^', '**')
-        # --- MEJORA INTEGRADA: Traducciones para ln y e ---
         func_str = func_str.replace('ln', 'log')
         func_str = re.sub(r'e\*\*\((.*?)\)', r'exp(\1)', func_str)
         func_str = re.sub(r'e\*\*(.*?)(\s|\+|-|\*|\/|$)', r'exp(\1)\2', func_str)
-        # Reemplazar números seguidos directamente de letras (ej: 4x1 -> 4*x1)
         func_str = re.sub(r'(\d)([a-zA-Z])', r'\1*\2', func_str)
         expr = sp.sympify(func_str)
         return expr
@@ -213,9 +63,34 @@ def compute_gradient(expr, variables):
 def compute_hessian(expr, variables):
     return sp.hessian(expr, variables)
 
-# --- MEJORA INTEGRADA: Añadido parámetro tol y cálculo de Error Relativo ---
-def run_gradient_descent(expr, vars_sym, x0, alpha_type, alpha_val, wolfe_params, max_iter, tol=1e-3):
+def calcular_error(curr_x, prev_x, norm_type):
+    # Permite elegir la norma requerida en problemas académicos
+    if norm_type == "L_infinito (Máximo)":
+        num = np.linalg.norm(curr_x - prev_x, ord=np.inf)
+        den = np.linalg.norm(prev_x, ord=np.inf)
+    elif norm_type == "L1 (Manhattan)":
+        num = np.linalg.norm(curr_x - prev_x, ord=1)
+        den = np.linalg.norm(prev_x, ord=1)
+    else: # L2 Euclidiana
+        num = np.linalg.norm(curr_x - prev_x)
+        den = np.linalg.norm(prev_x)
+    return num / (den if den != 0 else 1e-8)
+
+def evaluate_func_safe(f_lambdified, x, vars_sym):
+    # Protege contra evaluación de log(0) o raíces negativas usuales en estos problemas
+    try:
+        val = f_lambdified(*x) if len(vars_sym) > 1 else f_lambdified(x[0])
+        if np.isnan(val) or np.isinf(val):
+            return 1e9 # Penalización alta si sale del dominio
+        return val
+    except Exception:
+        return 1e9
+
+# --- Algoritmos Modificados para retornar logs detallados ---
+def run_gradient_descent(expr, vars_sym, x0, alpha_type, alpha_val, wolfe_params, max_iter, tol, norm_type):
     history = []
+    backtrack_log = [] # Para guardar el detalle del backtracking (Ítem a)
+    
     f_lambdified = sp.lambdify(vars_sym, expr, 'numpy')
     grad_exprs = compute_gradient(expr, vars_sym)
     grad_lambdified = [sp.lambdify(vars_sym, g, 'numpy') for g in grad_exprs]
@@ -223,419 +98,198 @@ def run_gradient_descent(expr, vars_sym, x0, alpha_type, alpha_val, wolfe_params
     curr_x = np.array(x0, dtype=float)
     
     for k in range(max_iter + 1):
-        f_val = f_lambdified(*curr_x) if len(vars_sym) > 1 else f_lambdified(curr_x[0])
+        f_val = evaluate_func_safe(f_lambdified, curr_x, vars_sym)
         grad_val = np.array([g(*curr_x) for g in grad_lambdified]) if len(vars_sym) > 1 else np.array([grad_lambdified[0](curr_x[0])])
         
         rel_error = 0.0
         if k > 0:
-            prev_x = np.array([history[-1][f'x_{i+1}'] for i in range(len(curr_x))])
-            denom = np.linalg.norm(prev_x)
-            rel_error = np.linalg.norm(curr_x - prev_x) / (denom if denom != 0 else 1e-8)
+            prev_x = np.array([history[-1][f'{v}'] for v in vars_sym])
+            rel_error = calcular_error(curr_x, prev_x, norm_type)
 
         entry = {'Iteración': k, 'f(x)': f_val, '||∇f(x)||': np.linalg.norm(grad_val), 'Error Rel. (%)': rel_error * 100}
         for i, val in enumerate(curr_x):
-            entry[f'x_{i+1}'] = val
+            entry[f'{vars_sym[i]}'] = val
         for i, val in enumerate(grad_val):
-            entry[f'g_{i+1}'] = val
+            entry[f'g_{vars_sym[i]}'] = val
         history.append(entry)
         
-        # Parada por tolerancia
         if k > 0 and rel_error < tol:
             break
         
         if k < max_iter:
-            if alpha_type == "Fijo":
-                alpha = alpha_val
-            else:
+            direction = -grad_val
+            alpha = alpha_val
+            
+            if alpha_type == "Wolfe (Armijo)":
                 alpha = wolfe_params['alpha_init']
                 c1 = wolfe_params['c1']
                 rho = wolfe_params['rho']
-                use_curv = wolfe_params.get('use_curvature', False)
-                theta = wolfe_params.get('theta', 0.9)
                 
-                direction = -grad_val
-                
-                for _ in range(50):
+                # Búsqueda de línea con registro
+                for intento in range(50):
                     new_x = curr_x + alpha * direction
-                    f_new = f_lambdified(*new_x) if len(vars_sym) > 1 else f_lambdified(new_x[0])
+                    f_new = evaluate_func_safe(f_lambdified, new_x, vars_sym)
                     
-                    armijo_cumple = f_new <= (f_val + c1 * alpha * np.dot(grad_val, direction))
+                    limite_armijo = f_val + c1 * alpha * np.dot(grad_val, direction)
+                    armijo_cumple = f_new <= limite_armijo
+                    
+                    # Guardar log solo de las primeras iteraciones para reporte
+                    if k < 3: 
+                        backtrack_log.append({
+                            'Iteración k': k, 'Intento': intento+1, 'Alfa (α)': alpha, 
+                            'f(x + αd)': f_new, 'Cota Armijo': limite_armijo, 'Cumple': armijo_cumple
+                        })
                     
                     if not armijo_cumple:
                         alpha *= rho 
                     else:
-                        if use_curv:
-                            grad_new_val = np.array([g(*new_x) for g in grad_lambdified]) if len(vars_sym) > 1 else np.array([grad_lambdified[0](new_x[0])])
-                            curv_cumple = np.dot(grad_new_val, direction) >= theta * np.dot(grad_val, direction)
-                            
-                            if not curv_cumple:
-                                alpha *= 1.5 
-                            else:
-                                break 
-                        else:
-                            break 
+                        break 
             
             curr_x = curr_x - alpha * grad_val
             
-    return pd.DataFrame(history)
-
-# --- MEJORA INTEGRADA: Añadido parámetro tol y cálculo de Error Relativo ---
-def run_new_ton_method(expr, vars_sym, x0, max_iter, tol=1e-3):
-    history = []
-    f_lambdified = sp.lambdify(vars_sym, expr, 'numpy')
-    grad_exprs = compute_gradient(expr, vars_sym)
-    hess_expr = compute_hessian(expr, variables=vars_sym)
-    
-    grad_lambdified = sp.lambdify(vars_sym, grad_exprs, 'numpy')
-    hess_lambdified = sp.lambdify(vars_sym, hess_expr, 'numpy')
-    
-    curr_x = np.array(x0, dtype=float)
-    for k in range(max_iter + 1):
-        f_val = f_lambdified(*curr_x) if len(vars_sym) > 1 else f_lambdified(curr_x[0])
-        grad_val = np.array(grad_lambdified(*curr_x)) if len(vars_sym) > 1 else np.array([grad_lambdified(curr_x[0])])
-        hess_val = np.array(hess_lambdified(*curr_x)) if len(vars_sym) > 1 else np.array([[hess_lambdified(curr_x[0])]])
-        
-        rel_error = 0.0
-        if k > 0:
-            prev_x = np.array([history[-1][f'x_{i+1}'] for i in range(len(curr_x))])
-            rel_error = np.linalg.norm(curr_x - prev_x) / (np.linalg.norm(prev_x) + 1e-8)
-            
-        entry = {'Iteración': k, 'f(x)': f_val, '||∇f(x)||': np.linalg.norm(grad_val), 'Error Rel. (%)': rel_error * 100}
-        for i, val in enumerate(curr_x):
-            entry[f'x_{i+1}'] = val
-        for i, val in enumerate(grad_val):
-            entry[f'g_{i+1}'] = val
-        history.append(entry)
-        
-        if k > 0 and rel_error < tol: 
-            break
-            
-        if k < max_iter:
-            try:
-                curr_x = curr_x - np.linalg.inv(hess_val).dot(grad_val)
-            except:
-                break
-    return pd.DataFrame(history)
-
-# --- MEJORA INTEGRADA: Añadido parámetro tol y cálculo de Error Relativo ---
-def run_conjugate_gradient(expr, vars_sym, x0, alpha_type, alpha_val, max_iter, tol=1e-3):
-    history = []
-    f_lambdified = sp.lambdify(vars_sym, expr, 'numpy')
-    grad_exprs = compute_gradient(expr, vars_sym)
-    grad_lambdified = [sp.lambdify(vars_sym, g, 'numpy') for g in grad_exprs]
-    
-    curr_x = np.array(x0, dtype=float)
-    
-    # Gradiente inicial y dirección de inicio p_0 = -g_0
-    grad_val = np.array([g(*curr_x) for g in grad_lambdified]) if len(vars_sym) > 1 else np.array([grad_lambdified[0](curr_x[0])])
-    p = -grad_val.copy()
-    
-    for k in range(max_iter + 1):
-        f_val = f_lambdified(*curr_x) if len(vars_sym) > 1 else f_lambdified(curr_x[0])
-        grad_val = np.array([g(*curr_x) for g in grad_lambdified]) if len(vars_sym) > 1 else np.array([grad_lambdified[0](curr_x[0])])
-        norm_grad = np.linalg.norm(grad_val)
-        
-        rel_error = 0.0
-        if k > 0:
-            prev_x = np.array([history[-1][f'x_{i+1}'] for i in range(len(curr_x))])
-            rel_error = np.linalg.norm(curr_x - prev_x) / (np.linalg.norm(prev_x) + 1e-8)
-            
-        entry = {'Iteración': k, 'f(x)': f_val, '||∇f(x)||': norm_grad, 'Error Rel. (%)': rel_error * 100}
-        for i, val in enumerate(curr_x):
-            entry[f'x_{i+1}'] = val
-        for i, val in enumerate(grad_val):
-            entry[f'g_{i+1}'] = val
-        history.append(entry)
-        
-        if k > 0 and (rel_error < tol or norm_grad < 1e-6):
-            break  # Convergencia alcanzada
-            
-        if k < max_iter:
-            # Regla de reinicio: Si no es una dirección de descenso, reiniciamos al gradiente negativo
-            if np.dot(grad_val, p) >= 0:
-                p = -grad_val
-                
-            if alpha_type == "Fijo":
-                alpha = alpha_val
-            else:
-                # Búsqueda de línea por backtracking (Armijo) para calcular alfa óptimo
-                alpha = alpha_val  # Usar el valor inicial configurado por el usuario
-                c1 = 1e-4
-                rho = 0.5
-                for _ in range(50):
-                    new_x = curr_x + alpha * p
-                    f_new = f_lambdified(*new_x) if len(vars_sym) > 1 else f_lambdified(new_x[0])
-                    if f_new <= f_val + c1 * alpha * np.dot(grad_val, p):
-                        break
-                    alpha *= rho
-                
-            # Actualizamos el punto actual x_{k+1} = x_k + alpha * p_k
-            next_x = curr_x + alpha * p
-            
-            # Evaluamos el nuevo gradiente g_{k+1}
-            grad_next_val = np.array([g(*next_x) for g in grad_lambdified]) if len(vars_sym) > 1 else np.array([grad_lambdified[0](next_x[0])])
-            
-            # Fórmula de Fletcher-Reeves para Beta: beta = ||g_{k+1}||^2 / ||g_k||^2
-            denom = np.dot(grad_val, grad_val)
-            if denom < 1e-12:
-                beta = 0.0
-            else:
-                beta = np.dot(grad_next_val, grad_next_val) / denom
-                
-            # Siguiente dirección de búsqueda: p_{k+1} = -g_{k+1} + beta * p_k
-            p = -grad_next_val + beta * p
-            curr_x = next_x
-            
-    return pd.DataFrame(history)
-
+    return pd.DataFrame(history), pd.DataFrame(backtrack_log), grad_exprs
 
 # --- Interfaces de Usuario ---
-def login_page():
-    st.title("Bienvenido al Optimizador Web 🚀")
-    st.markdown("Por favor, ingresa tu nombre de usuario para continuar.")
-    
-    with st.form("login_form"):
-        username = st.text_input("Nombre de usuario:")
-        submitted = st.form_submit_button("Ingresar")
-        
-        if submitted:
-            if username.strip() != "":
-                st.session_state['username'] = username
-                st.rerun()
-            else:
-                st.error("Por favor, ingresa un nombre válido.")
-
 def main_app():
-    # Barra lateral
     with st.sidebar:
-        st.write(f"👤 Usuario: **{st.session_state['username']}**")
-        
+        st.write("👤 Usuario: **Invitado**")
         st.markdown("<hr style='margin: 12px 0; border-color: #CBD5E1;'>", unsafe_allow_html=True)
         st.markdown("### 💡 Diccionario de Métodos")
-        
-        # Tarjeta 1: Gradiente
-        st.markdown(
-            """
-            <div class="method-card">
-                <strong>📉 Método del Gradiente</strong>
-                <span>Como bajar un cerro a oscuras: miras dónde el piso se inclina más hacia abajo y das un paso ahí. Es el más intuitivo y simple, pero a veces toma rodeos lentos.</span>
-            </div>
-            """, 
-            unsafe_allow_html=True
-        )
-        
-        # Tarjeta 2: Newton
-        st.markdown(
-            """
-            <div class="method-card">
-                <strong>🚀 Método de Newton</strong>
-                <span>El método de Newton para optimización es una técnica iterativa que busca encontrar el mínimo o máximo de una función. Utiliza la pendiente y la curvatura para determinar la dirección y el tamaño del paso en cada iteración, permitiendo converger rápidamente hacia la solución óptima.</span>
-            </div>
-            """, 
-            unsafe_allow_html=True
-        )
-        
-        # Tarjeta 3: Gradiente Conjugado (Fletcher-Reeves)
-        st.markdown(
-            """
-            <div class="method-card">
-                <strong>🎯 Gradiente Conjugado (Fletcher-Reeves)</strong>
-                <span>El "estratega": optimiza usando direcciones ortogonales (conjugadas) mediante la fórmula de Fletcher-Reeves. Evita repetir caminos explorados, usando búsqueda de línea exacta/Armijo para avanzar con máxima precisión.</span>
-            </div>
-            """, 
-            unsafe_allow_html=True
-        )
-        
-        st.markdown("<hr style='margin: 12px 0; border-color: #CBD5E1;'>", unsafe_allow_html=True)
-        
-        if st.button("Cerrar sesión"):
-            st.session_state.pop('username')
-            st.rerun()
+        st.markdown("""<div class="method-card"><strong>📉 Método del Gradiente</strong><span>Útil para encontrar mínimos locales moviéndose en la dirección del gradiente negativo.</span></div>""", unsafe_allow_html=True)
+        st.markdown("""<div class="method-card"><strong>🚀 Búsqueda de Línea (Armijo)</strong><span>Ajusta dinámicamente el tamaño del paso para garantizar un descenso suficiente (Primera Condición de Wolfe).</span></div>""", unsafe_allow_html=True)
 
-    # --- NUEVO: Cuadro de Instrucciones ---
     st.markdown("""
     <div class="instructions-box">
-        <h4>📖 Guía Paso a Paso</h4>
+        <h4>📖 Resuelve tus Guías de Estudio</h4>
         <ol>
-            <li><strong>Configura el problema:</strong> Indica cuántas variables tiene tu función.</li>
-            <li><strong>Ingresa tu función:</strong> Usa variables como <code>x1</code>, <code>x2</code>. Ej: <code>x1**4 - 3*x1**3 + 2</code>.</li>
-            <li><strong>Punto inicial:</strong> Define desde dónde arranca el algoritmo (separado por comas si hay más de 1 variable).</li>
-            <li><strong>Ajusta el algoritmo:</strong> Selecciona el método, su tolerancia (alfa) y las iteraciones máximas.</li>
-            <li><strong>Visualiza:</strong> Clic en <em>Ejecutar</em> para ver la evolución matemática iteración por iteración.</li>
+            <li><strong>Variables Flexibles:</strong> Escribe <code>x, y</code> o <code>x1, x2</code> según tu problema.</li>
+            <li><strong>Manejo de logaritmos:</strong> Usa <code>ln()</code> o <code>log()</code> sin problema.</li>
+            <li><strong>Reporte Detallado:</strong> Ideal para copiar el paso a paso en tus pruebas (incluyendo Backtracking y Condiciones de Wolfe).</li>
         </ol>
     </div>
     """, unsafe_allow_html=True)
 
-    st.title("⚙️ Calculadora")
+    st.title("⚙️ Calculadora de Optimización Académica")
     
-    # --- REDUCCIÓN DE TAMAÑOS (Uso de Columnas) ---
     st.markdown("### 1. Definición del Problema")
     
-    col1, col2, col3 = st.columns([1, 2, 1]) # Columnas proporcionadas
+    col1, col2, col3 = st.columns([1, 2, 1])
     
     with col1:
-        n_vars = st.number_input("Variables (n)", min_value=1, max_value=10, value=1)
-        vars_names = [f"x{i+1}" for i in range(n_vars)]
+        vars_input = st.text_input("Variables (separadas por coma)", value="x, y")
+        vars_names = [v.strip() for v in vars_input.split(',')]
     
     with col2:
-        func_input = st.text_input(f"Función f({', '.join(vars_names)})", value="x1**4 - 3*x1**3 + 2")
+        func_input = st.text_input(f"Función f({', '.join(vars_names)})", value="ln(x**2 + y**2) - 2*x*y")
         
     with col3:
-        start_point = st.text_input("Punto inicial (x0)", value="0.5")
+        start_point = st.text_input("Punto inicial (x0, y0)", value="-1, 0")
 
     st.markdown("### 2. Parámetros del Algoritmo")
     
-    col_m1, col_m2 = st.columns([1, 1])
+    col_m1, col_m2, col_m3 = st.columns([1, 1, 1])
     
     with col_m1:
-        method = st.selectbox("Método de optimización:", ["Método del Gradiente", "Método de Newton", "Método del Gradiente Conjugado"])
-        # --- MEJORA INTEGRADA: Input de Tolerancia en la interfaz ---
-        col_m1_1, col_m1_2 = st.columns(2)
-        with col_m1_1:
-            max_iter = st.number_input("Número de iteraciones", value=100, min_value=1)
-        with col_m1_2:
-            tolerancia = st.number_input("Tolerancia (Precisión Relativa)", value=0.001, format="%.4f")
-    
-    # Inicialización de variables para tamaño de paso
-    alpha_type = "Fijo"
-    alpha_val = 0.01
-    wolfe_params = {'alpha_init': 1.0, 'c1': 1e-4, 'rho': 0.5, 'use_curvature': False, 'theta': 0.9}
-    
-    # Variables de control específicas para Gradiente Conjugado
-    cg_alpha_type = "Búsqueda de línea (Armijo)"
-    cg_alpha_val = 1.0
-
+        method = st.selectbox("Método:", ["Método del Gradiente"])
+        max_iter = st.number_input("Iteraciones máximas", value=10, min_value=1)
+        
     with col_m2:
-        if method == "Método del Gradiente":
-            alpha_type = st.radio("Cálculo del tamaño de paso (alfa):", ["Fijo", "Wolfe (Armijo)"], horizontal=True)
-            
-            if alpha_type == "Fijo":
-                alpha_val = st.number_input("Valor de alfa:", value=0.01, format="%.4f")
-            elif alpha_type == "Wolfe (Armijo)":
-                c_w1, c_w2 = st.columns(2)
-                with c_w1:
-                    wolfe_params['alpha_init'] = st.number_input("Alfa inicial:", value=1.0, format="%.4f")
-                    wolfe_params['rho'] = st.number_input("Rho (reducción):", value=0.5, format="%.4f")
-                with c_w2:
-                    wolfe_params['c1'] = st.number_input("C1 (Armijo):", value=1e-4, format="%.4e")
-                    calc_curv = st.selectbox("¿Condición curvatura?", ["No", "Sí"])
-                    
-                if calc_curv == "Sí":
-                    wolfe_params['use_curvature'] = True
-                    wolfe_params['theta'] = st.number_input("Theta:", value=0.9, format="%.4f")
-                    
-        elif method == "Método del Gradiente Conjugado":
-            cg_alpha_type = st.radio("Cálculo del tamaño de paso (alfa) para GC:", ["Fijo", "Búsqueda de línea (Armijo)"], horizontal=True)
-            if cg_alpha_type == "Fijo":
-                cg_alpha_val = st.number_input("Valor de alfa (GC):", value=0.01, format="%.4f")
-            else:
-                cg_alpha_val = st.number_input("Alfa inicial para búsqueda (GC):", value=1.0, format="%.4f")
+        alpha_type = st.radio("Cálculo del paso (alfa):", ["Fijo", "Wolfe (Armijo)"], index=1, horizontal=True)
+        if alpha_type == "Fijo":
+            alpha_val = st.number_input("Valor de alfa:", value=0.01, format="%.4f")
         else:
-            st.info(f"El {method} utiliza búsqueda de línea dinámica o paso analítico propio.")
+            alpha_val = 0.0 # Placeholder
+            wolfe_params = {}
+            w_c1, w_c2 = st.columns(2)
+            with w_c1:
+                wolfe_params['alpha_init'] = st.number_input("Alfa inicial (α_0):", value=0.5, format="%.4f")
+                wolfe_params['rho'] = st.number_input("Rho (ρ - reducción):", value=0.5, format="%.4f")
+            with w_c2:
+                wolfe_params['c1'] = st.number_input("Beta (β - Armijo):", value=0.25, format="%.4f")
+                wolfe_sigma = st.number_input("Sigma (σ - Curvatura):", value=0.5, format="%.4f", help="Para la 2da condición de Wolfe")
+                
+    with col_m3:
+        tolerancia = st.number_input("Tolerancia", value=0.001, format="%.4f")
+        norm_type = st.selectbox("Norma para Error Relativo:", ["L_infinito (Máximo)", "L2 (Euclidiana)", "L1 (Manhattan)"])
+        show_exam_mode = st.checkbox("🔍 Mostrar Desglose Modo Examen", value=True)
 
-    st.markdown("<br>", unsafe_allow_html=True) # Espaciado estético
+    st.markdown("<br>", unsafe_allow_html=True)
 
-    # Botón centrado usando columnas vacías
     col_btn1, col_btn2, col_btn3 = st.columns([1, 1, 1])
     with col_btn2:
-        execute = st.button("▶ Ejecutar Optimización")
+        execute = st.button("▶ Resolver Problema")
 
-    # --- EJECUCIÓN ---
     if execute:
-        st.markdown("### 3. Análisis Matemático y Resultados")
+        st.markdown("### 3. Resultados y Análisis")
         vars_sym = sp.symbols(' '.join(vars_names))
-        if n_vars == 1: vars_sym = [vars_sym]
+        if len(vars_names) == 1: vars_sym = [vars_sym]
         expr = parse_function(func_input, vars_sym)
         
         try:
             clean_str = re.sub(r'[^0-9.,-]', '', start_point)
             x0 = [float(i) for i in clean_str.split(',') if i.strip()]
             
-            if expr is not None and len(x0) == n_vars:
-                # --- Mostrar Gradiente Analítico y Evaluación Inicial ---
-                grad_exprs = compute_gradient(expr, vars_sym)
+            if expr is not None and len(x0) == len(vars_names):
                 
-                # Renderizado de fórmulas analíticas
-                st.markdown("#### Fórmulas Analíticas Calculadas:")
-                st.latex(r"f(" + ", ".join(vars_names) + r") = " + sp.latex(expr))
-                
-                grad_latex_elements = [rf"\frac{{\partial f}}{{\partial {v}}} = {sp.latex(g)}" for v, g in zip(vars_names, grad_exprs)]
-                st.latex(r"\nabla f = \begin{bmatrix} " + r" \\ ".join(grad_latex_elements) + r" \end{bmatrix}")
-                
-                # Evaluar gradiente en el punto inicial x0
-                grad_lambdified = [sp.lambdify(vars_sym, g, 'numpy') for g in grad_exprs]
-                curr_x = np.array(x0, dtype=float)
-                grad_at_x0 = np.array([g(*curr_x) for g in grad_lambdified]) if len(vars_sym) > 1 else np.array([grad_lambdified[0](curr_x[0])])
-                
-                st.markdown("#### Evaluación en el Punto Inicial:")
-                st.latex(r"x_0 = \begin{bmatrix} " + r" \\ ".join([f"{val:.4f}" for val in x0]) + r" \end{bmatrix}")
-                st.latex(r"\nabla f(x_0) = \begin{bmatrix} " + r" \\ ".join([f"{val:.4f}" for val in grad_at_x0]) + r" \end{bmatrix}")
-                
-                # Ejecutar algoritmo seleccionado
+                # --- Ejecución del Algoritmo ---
                 if method == "Método del Gradiente":
-                    results = run_gradient_descent(expr, vars_sym, x0, alpha_type, alpha_val, wolfe_params, int(max_iter), tol=tolerancia)
-                elif method == "Método de Newton":
-                    results = run_new_ton_method(expr, vars_sym, x0, int(max_iter), tol=tolerancia)
-                else:
-                    results = run_conjugate_gradient(expr, vars_sym, x0, cg_alpha_type, cg_alpha_val, int(max_iter), tol=tolerancia)
+                    results, bt_log, grad_exprs = run_gradient_descent(expr, vars_sym, x0, alpha_type, alpha_val, wolfe_params if alpha_type=="Wolfe (Armijo)" else None, int(max_iter), tolerancia, norm_type)
                 
-                st.success("Optimización completada con éxito.")
-                
-                # --- MEJORA INTEGRADA: GRÁFICOS (Incisos i, iv y v) ---
-                col_g1, col_g2 = st.columns(2)
-                
-                with col_g1:
-                    st.markdown("#### (i) y (iv) Trayectoria en f(x)")
-                    if n_vars == 1:
-                        f_lambdified_plot = sp.lambdify(vars_sym, expr, 'numpy')
-                        x_hist = results['x_1'].values
-                        f_hist = results['f(x)'].values
-                        
-                        margin = max(1.0, (max(x_hist) - min(x_hist)) * 0.5)
-                        x_range = np.linspace(min(x_hist) - margin, max(x_hist) + margin, 500)
-                        y_range = [f_lambdified_plot(val) for val in x_range]
-                        
-                        fig, ax = plt.subplots(figsize=(7, 5))
-                        ax.plot(x_range, y_range, label='f(x)', color='#1E3A8A', linewidth=2)
-                        ax.plot(x_hist, f_hist, label='Iteraciones', color='#EF4444', marker='o', linestyle=':', markersize=6)
-                        ax.set_title("Comportamiento del Algoritmo")
-                        ax.set_xlabel("x")
-                        ax.set_ylabel("f(x)")
-                        ax.grid(True, linestyle='--', alpha=0.6)
-                        ax.legend()
-                        st.pyplot(fig, use_container_width=True)
-                    else:
-                        st.info("La visualización en 2D/3D está disponible solo para funciones de 1 variable.")
-
-                with col_g2:
-                    st.markdown("#### (v) Análisis de Convergencia")
+                # --- MODO EXAMEN: DESGLOSE PASO A PASO ---
+                if show_exam_mode:
+                    st.info("📚 **Desglose Académico (Iteración 0 a 1)**")
+                    
+                    st.markdown("**1. Gradiente Analítico:**")
+                    grad_latex = [rf"\frac{{\partial f}}{{\partial {v}}} = {sp.latex(g)}" for v, g in zip(vars_names, grad_exprs)]
+                    st.latex(r"\nabla f = \begin{bmatrix} " + r" \\ ".join(grad_latex) + r" \end{bmatrix}")
+                    
+                    x0_str = ", ".join([f"{v:.4f}" for v in x0])
+                    grad_x0_str = ", ".join([f"{results.iloc[0][f'g_{v}']:.4f}" for v in vars_sym])
+                    st.markdown(f"**Evaluación inicial:** $\\nabla f({x0_str}) = [{grad_x0_str}]^T$")
+                    
+                    # Análisis del inciso (a)
+                    if alpha_type == "Wolfe (Armijo)" and not bt_log.empty:
+                        st.markdown("**2. Búsqueda de Línea Backtracking (Resolución inciso a):**")
+                        st.dataframe(bt_log[bt_log['Iteración k'] == 0].drop(columns=['Iteración k']), use_container_width=True)
+                        alpha_final = bt_log[bt_log['Iteración k'] == 0].iloc[-1]['Alfa (α)']
+                        st.success(f"**Paso aceptado:** $\\alpha_0 = {alpha_final}$")
+                    
+                    # Análisis del inciso (b)
                     if len(results) > 1:
-                        iter_vals = results['Iteración'].values[1:] 
-                        err_vals = results['Error Rel. (%)'].values[1:]
+                        st.markdown(f"**3. Error Relativo (Resolución inciso b):**")
+                        err_0 = results.iloc[1]['Error Rel. (%)']
+                        st.markdown(f"Usando la norma seleccionada ({norm_type}), el error en la primera iteración es: **{err_0:.4f}%**")
+                    
+                    # Análisis del inciso (c) - Condición de Wolfe
+                    if len(results) > 1 and alpha_type == "Wolfe (Armijo)":
+                        st.markdown("**4. Verificación de 2da Condición de Wolfe (Curvatura) (Resolución inciso c):**")
+                        st.latex(r"\nabla C(\mathbf{x}^{(k)} + \alpha_m \mathbf{d}^{(k)})^T \mathbf{d}^{(k)} \ge \sigma \nabla C(\mathbf{x}^{(k)})^T \mathbf{d}^{(k)}")
                         
-                        fig_conv, ax_conv = plt.subplots(figsize=(7, 5))
-                        ax_conv.plot(iter_vals, err_vals, label='Error (%)', color='#10B981', marker='s', linestyle='-')
-                        ax_conv.set_title("Evolución del Error Relativo")
-                        ax_conv.set_xlabel("Iteración (k)")
-                        ax_conv.set_ylabel("Error Relativo (%)")
-                        ax_conv.set_yscale('log')
-                        ax_conv.grid(True, linestyle='--', alpha=0.6)
-                        ax_conv.legend()
-                        st.pyplot(fig_conv, use_container_width=True)
-                    else:
-                        st.info("El algoritmo convergió inmediatamente, no hay suficientes iteraciones para graficar convergencia.")
-
-                # --- Tabla Original Intacta ---
-                st.markdown("#### Tabla del Historial de Iteraciones:")
-                st.markdown("*(Nota: Las columnas `g_1, g_2, ...` representan los valores de los componentes individuales del gradiente $\\nabla f(x)$)*")
+                        g_k = np.array([results.iloc[0][f'g_{v}'] for v in vars_sym])
+                        d_k = -g_k
+                        g_k1 = np.array([results.iloc[1][f'g_{v}'] for v in vars_sym])
+                        
+                        lado_izq = np.dot(g_k1, d_k)
+                        lado_der = wolfe_sigma * np.dot(g_k, d_k)
+                        
+                        st.latex(rf"{lado_izq:.6f} \ge {wolfe_sigma} \times ({np.dot(g_k, d_k):.6f})")
+                        st.latex(rf"{lado_izq:.6f} \ge {lado_der:.6f}")
+                        
+                        if lado_izq >= lado_der:
+                            st.success("✅ **La segunda condición de Wolfe SÍ se cumple.**")
+                        else:
+                            st.error("❌ **La segunda condición de Wolfe NO se cumple.** (Es común que Armijo simple no la satisfaga sin cálculo de curvatura estricto).")
+                    
+                    st.markdown("<hr>", unsafe_allow_html=True)
+                
+                # --- Tabla General ---
+                st.markdown("#### Tabla del Historial de Iteraciones General")
                 st.dataframe(results, use_container_width=True)
+                
             else:
-                st.error("Error en las dimensiones o la función. Revisa que el punto inicial tenga la misma cantidad de variables.")
+                st.error("Error: Asegúrate que la cantidad de valores en el punto inicial coincida con las variables.")
         except Exception as e:
-            st.error(f"Se encontró un error al procesar los datos: {e}")
+            st.error(f"Se encontró un error matemático/sintáctico: {e}")
 
-# Manejo de estado de la aplicación
-if 'username' not in st.session_state:
-    login_page()
-else:
+if __name__ == "__main__":
     main_app()
