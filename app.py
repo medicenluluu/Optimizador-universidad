@@ -356,7 +356,6 @@ def main_app():
                     st.markdown("### (a) Una iteración de descenso por gradiente con Backtracking")
                     
                     st.markdown("**1. Gradiente de $C(" + ", ".join(vars_names) + ")$**")
-                    grad_latex = [rf"\frac{{\partial C}}{{\partial {v}}} = {sp.latex(g)}" for v, g in zip(vars_names, grad_exprs)]
                     st.latex(r"\nabla C = \left( " + r", \quad ".join([sp.latex(g) for g in grad_exprs]) + r" \right)")
                     
                     x0_str = ", ".join([f"{v:g}" for v in x0])
@@ -399,7 +398,6 @@ def main_app():
                         st.markdown("**3. Condición de Armijo**")
                         c1_val = wolfe_params['c1']
                         
-                        # Generando la fracción estilizada para beta
                         if c1_val == 0.25:
                             beta_tex = r"\frac14"
                         elif c1_val == 0.5:
@@ -468,79 +466,46 @@ def main_app():
                     if len(results) > 1:
                         st.markdown(f"### (b) Error porcentual de la primera iteración usando $\\| \cdot \\|_{{\\text{{{norm_type.split(' ')[0]}}}}}$")
                         
-                        if "infinito" in norm_type:
-                            norm_symbol = r"\| \cdot \|_\infty"
-                            ord_val = np.inf
-                        elif "L1" in norm_type:
-                            norm_symbol = r"\| \cdot \|_1"
-                            ord_val = 1
-                        else:
-                            norm_symbol = r"\| \cdot \|_2"
-                            ord_val = 2
-                            
-                    st.markdown("Usamos el error relativo aproximado")
-
-                    if "infinito" in norm_type:
-                            norm_latex = r"\infty"
-                        elif "L1" in norm_type:
-                            norm_latex = "1"
-                        else:
-                            norm_latex = "2"
-
+                        # Corrección aquí: Extraemos la parte del símbolo de norma de forma segura
+                        norm_symbol = norm_type.split('_')[0].replace("L", "")
+                        
+                        st.markdown("Usamos el error relativo aproximado")
                         st.latex(
-                            rf"E = \frac{{\|x^{{(1)}} - x^{{(0)}}\|_{{{norm_latex}}}}}"
-                            rf"{{\|x^{{(1)}}\|_{{{norm_latex}}}}}"
-                            r"\times100\%"
+                            r"E = \frac{\|x^{(1)} - x^{(0)}\|_{" + norm_symbol + r"}}{\|x^{(1)}\|_{" + norm_symbol + r"}} \times 100\%"
                         )
 
                         x1_vals = np.array([results.iloc[1][f'{v}'] for v in vars_sym])
                         diff_vals = x1_vals - x0
-
                         diff_str = ", ".join([f"{v:g}" for v in diff_vals])
                         diff_tuple = f"({diff_str})" if len(diff_vals) > 1 else f"{diff_vals[0]:g}"
-
                         x1_str = ", ".join([f"{v:g}" for v in x1_vals])
                         x1_tuple = f"({x1_str})" if len(x1_vals) > 1 else f"{x1_vals[0]:g}"
 
                         st.markdown("Calculamos")
-                        st.latex(
-                            rf"x^{{(1)}} - x^{{(0)}} = {x1_tuple} - {x0_tuple} = {diff_tuple}"
-                        )
+                        st.latex(rf"x^{{(1)}} - x^{{(0)}} = {x1_tuple} - {x0_tuple} = {diff_tuple}")
 
+                        ord_val = np.inf if "infinito" in norm_type else (1 if "L1" in norm_type else 2)
                         num_val = np.linalg.norm(diff_vals, ord=ord_val)
                         den_val = np.linalg.norm(x1_vals, ord=ord_val)
 
                         st.markdown("Entonces")
-                        st.latex(
-                            rf"\|x^{{(1)}} - x^{{(0)}}\|_{{{norm_latex}}} = {num_val:g}"
-                        )
-
+                        st.latex(rf"\|x^{{(1)}} - x^{{(0)}}\|_{{{norm_symbol}}} = {num_val:g}")
                         st.markdown("Además,")
-
-                        st.latex(
-                            rf"\|x^{{(1)}}\|_{{{norm_latex}}} = {den_val:g}"
-                        )
+                        st.latex(rf"\|x^{{(1)}}\|_{{{norm_symbol}}} = {den_val:g}")
 
                         E_val = (num_val / den_val) * 100 if den_val != 0 else 0
-
                         st.markdown("Por tanto")
-
-                        st.latex(
-                            rf"E = \frac{{{num_val:g}}}{{{den_val:g}}}\times100 = {E_val:g}\%"
-                        )
-
+                        st.latex(rf"E = \frac{{{num_val:g}}}{{{den_val:g}}}\times100 = {E_val:g}\%")
                         st.latex(rf"\boxed{{E = {E_val:g}\%}}")
                 
-                # --- GRÁFICOS ORIGINALES REINTEGRADOS ---
+                # --- GRÁFICOS ---
                 col_g1, col_g2 = st.columns(2)
-                
                 with col_g1:
                     st.markdown("#### (i) y (iv) Trayectoria en C(x)")
                     if len(vars_names) == 1:
                         f_lambdified_plot = sp.lambdify(vars_sym, expr, 'numpy')
                         x_hist = results[f'{vars_names[0]}'].values
                         f_hist = results['C(x)'].values
-                        
                         margin = max(1.0, (max(x_hist) - min(x_hist)) * 0.5)
                         x_range = np.linspace(min(x_hist) - margin, max(x_hist) + margin, 500)
                         y_range = [f_lambdified_plot(val) for val in x_range]
@@ -562,7 +527,6 @@ def main_app():
                     if len(results) > 1:
                         iter_vals = results['Iteración'].values[1:] 
                         err_vals = results['Error Rel. (%)'].values[1:]
-                        
                         fig_conv, ax_conv = plt.subplots(figsize=(7, 5))
                         ax_conv.plot(iter_vals, err_vals, label='Error (%)', color='#10B981', marker='s', linestyle='-')
                         ax_conv.set_title("Evolución del Error Relativo")
@@ -573,9 +537,8 @@ def main_app():
                         ax_conv.legend()
                         st.pyplot(fig_conv, use_container_width=True)
                     else:
-                        st.info("El algoritmo convergió en el primer intento. No hay gráficas de convergencia.")
+                        st.info("El algoritmo convergió en el primer intento.")
 
-                # --- Tabla General ---
                 st.markdown("#### Tabla General del Historial de Iteraciones")
                 st.dataframe(results, use_container_width=True)
                 
