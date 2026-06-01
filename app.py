@@ -29,11 +29,6 @@ if not st.session_state.user_name:
             st.warning("Por favor, escribe un nombre primero.")
     st.stop() # 'st.stop()' es más limpio que 'return' en el nivel superior
 # --- FIN BLOQUE DE LOGIN ---
-
-# 3. Aquí comienza el resto de tu lógica de la aplicación
-# (Funciones, cálculos, menús, etc.)
-with st.sidebar:
-    st.write(f"👤 Usuario: **{st.session_state.user_name}**")
 # --- Inyección de CSS (Diseño conservado) ---
 st.markdown(
     """
