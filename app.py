@@ -8,10 +8,7 @@ import matplotlib.pyplot as plt
 # 1. Configuración de página
 st.set_page_config(page_title="Calculadora de Optimización", layout="wide", initial_sidebar_state="expanded")
 
-# 2. Inyección de CSS (Tu código existente)
-st.markdown("""<style>...</style>""", unsafe_allow_html=True)
-
-# --- INSERTA AQUÍ EL BLOQUE DE LOGIN ---
+# --- BLOQUE DE LOGIN ---
 if "user_name" not in st.session_state:
     st.session_state.user_name = ""
 
@@ -27,9 +24,10 @@ if not st.session_state.user_name:
             st.rerun() 
         else:
             st.warning("Por favor, escribe un nombre primero.")
-    st.stop() # 'st.stop()' es más limpio que 'return' en el nivel superior
+    st.stop() # Detiene la ejecución hasta que el usuario se identifique
 # --- FIN BLOQUE DE LOGIN ---
-# --- Inyección de CSS (Diseño conservado) ---
+
+# 2. Inyección de CSS (Diseño conservado)
 st.markdown(
     """
     <style>
@@ -57,13 +55,17 @@ st.markdown(
     .stButton > button, [data-testid="stForm"] button, button[kind="primaryFormSubmit"] { background-color: #1E3A8A !important; color: #FFFFFF !important; font-family: 'Times New Roman', Times, serif !important; font-size: 16px !important; font-weight: bold !important; border: none !important; border-radius: 8px !important; padding: 8px 24px !important; width: 100% !important; transition: all 0.2s ease-in-out !important; box-shadow: 0 2px 4px rgba(30, 58, 138, 0.2) !important; }
     .stButton > button *, [data-testid="stForm"] button * { color: #FFFFFF !important; }
     .stButton > button:hover, [data-testid="stForm"] button:hover, button[kind="primaryFormSubmit"]:hover { background-color: #1D4ED8 !important; color: #FFFFFF !important; transform: translateY(-1px) !important; box-shadow: 0 4px 6px rgba(30, 58, 138, 0.3) !important; cursor: pointer; }
-    .stButton > button:hover *, [data-testid="stForm"] button:hover * { color: #FFFFFF !important; }
+    .stButton > button:hover *, [data-testid="stButton"] button:hover * { color: #FFFFFF !important; }
     [data-testid="stDataFrame"] { background-color: #FFFFFF !important; border: 1px solid #E2E8F0 !important; border-radius: 10px !important; padding: 10px !important; box-shadow: 0 2px 4px rgba(0,0,0,0.02) !important; }
     [data-testid="collapsedControl"], [data-testid="stSidebarCollapseButton"] { display: none !important; }
     </style>
     """,
     unsafe_allow_html=True
 )
+
+# 3. Resto de tu lógica de la aplicación
+with st.sidebar:
+    st.write(f"👤 Usuario: **{st.session_state.user_name}**")
 
 # --- Funciones de Matemáticas ---
 def parse_function(func_str, vars_list):
