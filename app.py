@@ -66,7 +66,7 @@ st.markdown(
 
 # 3. Resto de tu lógica de la aplicación
 with st.sidebar:
-    st.write(f"👤 Usuario: **{st.session_state.user_name}**")
+    st.write(f"👤 Usuario: {st.session_state.user_name}")
 
 # --- Funciones de Matemáticas ---
 def parse_function(func_str, vars_list):
