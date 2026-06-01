@@ -480,7 +480,7 @@ def main_app():
                             
                     st.markdown("Usamos el error relativo aproximado")
 
-                        if "infinito" in norm_type:
+                    if "infinito" in norm_type:
                             norm_latex = r"\infty"
                         elif "L1" in norm_type:
                             norm_latex = "1"
