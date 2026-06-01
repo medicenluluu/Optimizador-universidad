@@ -479,7 +479,18 @@ def main_app():
                             ord_val = 2
                             
                         st.markdown("Usamos el error relativo aproximado")
-                        st.latex(rf"E = \frac{{\|x^{{(1)}} - x^{{(0)}}}\|_{norm_symbol.split('_')[1]}}}{{\|x^{{(1)}}}\|_{norm_symbol.split('_')[1]}}} \, 100\%.")
+                       if "infinito" in norm_type:
+    norm_latex = r"\infty"
+elif "L1" in norm_type:
+    norm_latex = "1"
+else:
+    norm_latex = "2"
+
+st.latex(
+    rf"E = \frac{{\|x^{{(1)}} - x^{{(0)}}\|_{{{norm_latex}}}}}"
+    rf"{{\|x^{{(1)}}\|_{{{norm_latex}}}}}"
+    r"\times100\%"
+)
                         
                         x1_vals = np.array([results.iloc[1][f'{v}'] for v in vars_sym])
                         diff_vals = x1_vals - x0
