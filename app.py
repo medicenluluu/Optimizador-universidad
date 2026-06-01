@@ -61,6 +61,7 @@ st.markdown(
     </style>
     """,
     unsafe_allow_html=True
+
 )
 
 # 3. Resto de tu lógica de la aplicación
