@@ -274,7 +274,6 @@ def run_conjugate_gradient(expr, vars_sym, x0, alpha_type, alpha_val, max_iter, 
 # --- Interfaz de Usuario ---
 def main_app():
     with st.sidebar:
-        st.write(f"👤 Usuario: **{st.session_state.user_name}**")
         st.markdown("<hr style='margin: 12px 0; border-color: #CBD5E1;'>", unsafe_allow_html=True)
         st.markdown("### 💡 Diccionario de Métodos")
         st.markdown("""<div class="method-card"><strong>📉 Método del Gradiente</strong><span>Fácil de usar para buscar mínimos locales moviéndose en la dirección del gradiente negativo.</span></div>""", unsafe_allow_html=True)
