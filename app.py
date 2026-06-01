@@ -478,7 +478,7 @@ def main_app():
                             norm_symbol = r"\| \cdot \|_2"
                             ord_val = 2
                             
-                         st.markdown("Usamos el error relativo aproximado")
+                    st.markdown("Usamos el error relativo aproximado")
 
                         if "infinito" in norm_type:
                             norm_latex = r"\infty"
