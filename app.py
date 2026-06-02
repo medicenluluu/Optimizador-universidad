@@ -65,7 +65,7 @@ st.markdown(
     body,
     [data-testid="stAppViewContainer"],
     [data-testid="stSidebar"] {
-        font-family: "Times New Roman", Times, serif !important;
+        font-family: Helvetica, Arial, sans-serif !important;
     }
 
     p,
@@ -74,7 +74,7 @@ st.markdown(
     li,
     .stMarkdown,
     [data-testid="stWidgetLabel"] p {
-        font-family: "Times New Roman", Times, serif !important;
+        font-family: Helvetica, Arial, sans-serif !important;
         font-size: 16px !important;
         color: #000000 !important;
     }
@@ -83,7 +83,7 @@ st.markdown(
     h2,
     h3,
     h4 {
-        font-family: "Times New Roman", Times, serif !important;
+        font-family: Helvetica, Arial, sans-serif !important;
         color: #000000 !important;
         font-weight: bold !important;
     }
