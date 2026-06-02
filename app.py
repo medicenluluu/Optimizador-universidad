@@ -13,9 +13,9 @@ if "user_name" not in st.session_state:
     st.session_state.user_name = ""
 
 if not st.session_state.user_name:
-    st.title("⚙️ Calculadora de Optimización Académica")
-    st.markdown("### Bienvenido")
-    st.write("Por favor, ingresa tu nombre para comenzar a usar la calculadora.")
+    st.title("Calculadora de Optimización Académica")
+    st.divider()
+    st.subheader("Bienvenido")
     
     name_input = st.text_input("Tu nombre:")
     if st.button("Entrar a la aplicación"):
