@@ -489,6 +489,45 @@ def run_conjugate_gradient(expr, vars_sym, x0, alpha_type, alpha_val, max_iter, 
     return pd.DataFrame(history)
 
 # --- Interfaz de Usuario ---
+@st.dialog("📖 Definición del Método")
+def mostrar_metodo():
+
+    metodo = st.session_state.metodo_info
+
+    if metodo == "gradiente":
+        st.subheader("Método del Gradiente")
+        st.write("""
+        Busca mínimos moviéndose en la dirección opuesta al gradiente.
+        
+        • Fácil de implementar.
+        • Utiliza derivadas de primer orden.
+        • Puede requerir muchas iteraciones.
+        """)
+
+    elif metodo == "newton":
+        st.subheader("Método de Newton")
+        st.write("""
+        Utiliza gradiente y Hessiana para aproximar rápidamente el óptimo.
+        
+        • Convergencia rápida.
+        • Usa derivadas de segundo orden.
+        • Requiere invertir la Hessiana.
+        """)
+
+    elif metodo == "conjugado":
+        st.subheader("Gradiente Conjugado")
+        st.write("""
+        Genera direcciones conjugadas para evitar recorrer caminos repetidos.
+        
+        • Más eficiente que gradiente clásico.
+        • Muy útil en problemas grandes.
+        • No requiere Hessiana completa.
+        """)
+
+    if st.button("Cerrar"):
+        del st.session_state["metodo_info"]
+        st.rerun()
+
 def main_app():
 
     with st.sidebar:
