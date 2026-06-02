@@ -166,23 +166,44 @@ if "user_name" not in st.session_state:
     st.session_state.user_name = ""
 
 if not st.session_state.user_name:
-    st.markdown('<div class="glass-panel">', unsafe_allow_html=True)
-    st.title("✨ Calculadora de Optimización")
-    st.markdown("### ¡Hola! Qué gusto verte por aquí.")
-    st.write("Por favor, ingresa tu nombre para que podamos comenzar a optimizar.")
-    
-    col1, col2, col3 = st.columns([1, 2, 1])
+
+    st.markdown("""
+    <div class="hero-card">
+        <div class="hero-icon">✨</div>
+
+        <h1 class="hero-title">
+            Calculadora de Optimización
+        </h1>
+
+        <p class="hero-subtitle">
+            Resuelve problemas de optimización mediante
+            Gradiente, Newton y Gradiente Conjugado.
+        </p>
+
+        <div class="hero-description">
+            Ingresa tu nombre para comenzar.
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    col1, col2, col3 = st.columns([1, 1.5, 1])
+
     with col2:
-        name_input = st.text_input("Tu nombre:", placeholder="Ej. Ana Pérez")
-        st.write("") # Espacio
-        if st.button("🚀 Entrar a la aplicación"):
+
+        name_input = st.text_input(
+            "Tu nombre",
+            placeholder="Ej. Ana Pérez"
+        )
+
+        if st.button("🚀 Comenzar"):
             if name_input:
                 st.session_state.user_name = name_input
-                st.rerun() 
+                st.rerun()
             else:
-                st.warning("Por favor, escribe un nombre primero.")
-    st.markdown('</div>', unsafe_allow_html=True)
+                st.warning("Ingresa tu nombre.")
+
     st.stop()
+
 # --- FIN BLOQUE DE LOGIN ---
 
 
