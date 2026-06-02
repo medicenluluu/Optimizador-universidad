@@ -1,158 +1,59 @@
 import streamlit as st
 import numpy as np
-import pandas as pd
 import sympy as sp
-import re
-import matplotlib.pyplot as plt
 
 # 1. Configuración de página
 st.set_page_config(
     page_title="Calculadora de Optimización", 
     page_icon="✨", 
-    layout="wide", 
-    initial_sidebar_state="expanded"
+    layout="wide"
 )
 
-# 2. Inyección de CSS (Diseño Estético, Baby Blue y Bordes Redondeados)
+# 2. CSS Estético (Baby Blue & Rounded UI)
 def inject_custom_css():
     st.markdown(
         """
         <style>
-        /* Importar fuente redondeada y moderna */
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700;800&display=swap');
 
-        /* Fondo general Baby Blue */
-        .stApp, [data-testid="stAppViewContainer"] { 
+        .stApp { 
             background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%) !important; 
             font-family: 'Nunito', sans-serif !important;
         }
         
-        /* Barra lateral más clara */
-        [data-testid="stSidebar"], [data-testid="stSidebar"] > div { 
-            background-color: rgba(255, 255, 255, 0.6) !important; 
-            backdrop-filter: blur(10px);
-            border-right: none !important; 
-        }
-
-        /* Textos generales */
-        html, body, p, span, label, li, .stMarkdown, [data-testid="stWidgetLabel"] p { 
-            font-family: 'Nunito', sans-serif !important; 
-            color: #334155 !important; 
+        .hero-card {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 3rem;
+            border-radius: 30px;
+            text-align: center;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
         }
         
-        /* Títulos */
-        h1, h2, h3, h4 { 
-            font-family: 'Nunito', sans-serif !important; 
-            color: #0f172a !important; 
-            font-weight: 800 !important; 
-        }
+        .hero-title { color: #0f172a !important; font-size: 3rem !important; margin-bottom: 1rem; }
+        .hero-subtitle { color: #334155 !important; font-size: 1.25rem !important; }
         
-        /* Contenedores blancos redondeados (Efecto Tarjeta) */
-        .block-container {
-            padding-top: 2rem !important;
-            padding-bottom: 2rem !important;
-        }
-        
-        .css-1r6slb0, [data-testid="stForm"], .stFormCreator { 
-            background-color: #FFFFFF !important; 
-            border: none !important; 
-            border-radius: 20px !important; 
-            padding: 24px !important; 
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01) !important; 
-        }
-
-        /* Cajas de instrucciones estéticas */
-        .instructions-box { 
-            background-color: #ffffff; 
-            border-left: 6px solid #38bdf8; 
-            padding: 20px 25px; 
-            border-radius: 16px; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.03); 
-            margin-bottom: 25px; 
-            margin-top: 10px; 
-        }
-        .instructions-box h4 { color: #0284c7 !important; margin-bottom: 10px;}
-        .instructions-box li { font-size: 16px !important; margin-bottom: 8px; color: #475569 !important; }
-        .instructions-box code { 
-            background-color: #f0f9ff; 
-            color: #0284c7; 
-            padding: 4px 8px; 
-            border-radius: 8px; 
-            font-family: monospace !important; 
-            font-weight: bold;
-        }
-
-        /* Tarjetas de métodos (Diccionario) */
-        .method-card { 
-            background-color: #ffffff !important; 
-            padding: 18px; 
-            border-radius: 16px; 
-            border: 1px solid #e0f2fe; 
-            margin-bottom: 15px; 
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02); 
-            transition: transform 0.2s ease;
-        }
-        .method-card:hover { transform: translateY(-3px); box-shadow: 0 8px 15px rgba(56, 189, 248, 0.1); }
-        .method-card strong { color: #0284c7 !important; font-size: 16px !important; display: block; margin-bottom: 6px; }
-        .method-card span { font-size: 14px !important; color: #64748b !important; line-height: 1.5 !important; display: block; }
-
-        /* Inputs y Selects */
-        input, select, textarea, [data-baseweb="select"], [data-baseweb="input"], .stTextInput>div>div>input { 
-            background-color: #f8fafc !important; 
-            color: #0f172a !important; 
-            font-family: 'Nunito', sans-serif !important; 
-            font-size: 16px !important; 
-            border: 2px solid #e2e8f0 !important; 
-            border-radius: 12px !important; 
-            padding: 10px !important;
-            transition: border-color 0.3s ease;
-        }
-        input:focus, select:focus, .stTextInput>div>div>input:focus {
-            border-color: #38bdf8 !important;
-            box-shadow: 0 0 0 1px #38bdf8 !important;
-        }
-
-        /* Botones principales */
-        .stButton > button, button[kind="primaryFormSubmit"] { 
-            background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%) !important; 
-            color: #FFFFFF !important; 
-            font-family: 'Nunito', sans-serif !important; 
-            font-size: 18px !important; 
-            font-weight: 800 !important; 
-            border: none !important; 
-            border-radius: 100px !important; /* Totalmente redondo */
-            padding: 12px 24px !important; 
-            width: 100% !important; 
-            transition: all 0.3s ease !important; 
-            box-shadow: 0 4px 15px rgba(2, 132, 199, 0.3) !important; 
-        }
-        .stButton > button:hover, button[kind="primaryFormSubmit"]:hover { 
-            transform: translateY(-2px) !important; 
-            box-shadow: 0 8px 20px rgba(2, 132, 199, 0.4) !important; 
-            cursor: pointer; 
-            background: linear-gradient(135deg, #0369a1 0%, #0284c7 100%) !important; 
-        }
-
-        /* Dataframes (Tablas) */
-        [data-testid="stDataFrame"] { 
-            background-color: #FFFFFF !important; 
-            border: none !important; 
-            border-radius: 16px !important; 
-            padding: 15px !important; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.03) !important; 
-        }
-
-        /* Ocultar elementos nativos de Streamlit no deseados */
-        [data-testid="collapsedControl"], [data-testid="stSidebarCollapseButton"] { display: none !important; }
-        
-        /* Paneles decorativos para organizar UI */
-        .glass-panel {
-            background-color: rgba(255, 255, 255, 0.85);
-            border-radius: 20px;
-            padding: 25px;
+        .card {
+            background-color: #FFFFFF !important;
+            padding: 2rem !important;
+            border-radius: 25px !important;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05) !important;
             margin-bottom: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.02);
-            border: 1px solid rgba(255,255,255,0.5);
+        }
+
+        div.stButton > button {
+            background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%) !important;
+            color: white !important;
+            border-radius: 50px !important;
+            padding: 10px 30px !important;
+            font-weight: 700 !important;
+            border: none !important;
+            width: 100% !important;
+        }
+
+        .stTextInput > div > div > input {
+            border-radius: 15px !important;
+            border: 2px solid #bae6fd !important;
         }
         </style>
         """,
@@ -161,50 +62,56 @@ def inject_custom_css():
 
 inject_custom_css()
 
-# --- BLOQUE DE LOGIN ---
+# --- LOGIN ---
 if "user_name" not in st.session_state:
     st.session_state.user_name = ""
 
 if not st.session_state.user_name:
-
     st.markdown("""
     <div class="hero-card">
-        <div class="hero-icon">✨</div>
-
-        <h1 class="hero-title">
-            Calculadora de Optimización
-        </h1>
-
-        <p class="hero-subtitle">
-            Resuelve problemas de optimización mediante
-            Gradiente, Newton y Gradiente Conjugado.
-        </p>
-
-        <div class="hero-description">
-            Ingresa tu nombre para comenzar.
-        </div>
+        <h1 class="hero-title">Calculadora de Optimización</h1>
+        <p class="hero-subtitle">Resuelve problemas mediante Gradiente, Newton y Gradiente Conjugado.</p>
     </div>
     """, unsafe_allow_html=True)
-
-    col1, col2, col3 = st.columns([1, 1.5, 1])
-
+    
+    col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-
-        name_input = st.text_input(
-            "Tu nombre",
-            placeholder="Ej. Ana Pérez"
-        )
-
+        name_input = st.text_input("Ingresa tu nombre para comenzar:")
         if st.button("🚀 Comenzar"):
             if name_input:
                 st.session_state.user_name = name_input
                 st.rerun()
             else:
-                st.warning("Ingresa tu nombre.")
-
+                st.warning("Por favor, ingresa tu nombre.")
     st.stop()
 
-# --- FIN BLOQUE DE LOGIN ---
+# --- APP PRINCIPAL ---
+st.title(f"¡Bienvenido, {st.session_state.user_name}! 🎓")
+
+with st.container():
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        vars_input = st.text_input("Variables (ej: x, y)", "x, y")
+        func_input = st.text_input("Función C(x, y)", "x**2 + y**2")
+    
+    with col2:
+        start_point = st.text_input("Punto inicial (ej: 1, 1)", "1, 1")
+        method = st.selectbox("Método de resolución", ["Gradiente", "Newton", "Gradiente Conjugado"])
+    
+    if st.button("▶️ Resolver Problema"):
+        st.write("---")
+        st.info(f"Procesando optimización con **{method}**...")
+        # Lógica de cálculo aquí
+    
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# Footer
+st.sidebar.markdown(f"### 👤 Usuario: {st.session_state.user_name}")
+if st.sidebar.button("Cerrar sesión"):
+    del st.session_state.user_name
+    st.rerun()
 
 
 # --- Funciones de Matemáticas (Intactas) ---
