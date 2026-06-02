@@ -491,11 +491,18 @@ def run_conjugate_gradient(expr, vars_sym, x0, alpha_type, alpha_val, max_iter, 
 # --- Interfaz de Usuario ---
 def main_app():
     with st.sidebar:
-        st.markdown("<hr style='margin: 12px 0; border-color: #CBD5E1;'>", unsafe_allow_html=True)
-        st.markdown("### 💡 Diccionario de Métodos")
-        st.markdown("""<div class="method-card"><strong>📉 Método del Gradiente</strong><span>Fácil de usar para buscar mínimos locales moviéndose en la dirección del gradiente negativo.</span></div>""", unsafe_allow_html=True)
-        st.markdown("""<div class="method-card"><strong>🚀 Método de Newton</strong><span>Utiliza la pendiente y la curvatura (Hessiana) para determinar un paso ultra rápido, ideal para soluciones cercanas al óptimo.</span></div>""", unsafe_allow_html=True)
-        st.markdown("""<div class="method-card"><strong>🎯 Gradiente Conjugado</strong><span>Optimiza usando direcciones ortogonales. Evita repetir caminos explorados para avanzar con gran precisión.</span></div>""", unsafe_allow_html=True)
+
+    st.markdown("## 💡 Diccionario")
+    st.markdown("### de Métodos")
+
+    if st.button("📉 Método del Gradiente"):
+        st.session_state.metodo_info = "gradiente"
+
+    if st.button("🚀 Método de Newton"):
+        st.session_state.metodo_info = "newton"
+
+    if st.button("🎯 Gradiente Conjugado"):
+        st.session_state.metodo_info = "conjugado"<div class="method-card"><strong>🎯 Gradiente Conjugado</strong><span>Optimiza usando direcciones ortogonales. Evita repetir caminos explorados para avanzar con gran precisión.</span></div>""", unsafe_allow_html=True)
 
     st.markdown("""
     <div class="instructions-box">
