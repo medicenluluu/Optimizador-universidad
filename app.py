@@ -490,19 +490,20 @@ def run_conjugate_gradient(expr, vars_sym, x0, alpha_type, alpha_val, max_iter, 
 
 # --- Interfaz de Usuario ---
 def main_app():
+
     with st.sidebar:
 
-    st.markdown("## 💡 Diccionario")
-    st.markdown("### de Métodos")
+        st.markdown("## 💡 Diccionario")
+        st.markdown("### de Métodos")
 
-    if st.button("📉 Método del Gradiente"):
-        st.session_state.metodo_info = "gradiente"
+        if st.button("📉 Método del Gradiente"):
+            st.session_state.metodo_info = "gradiente"
 
-    if st.button("🚀 Método de Newton"):
-        st.session_state.metodo_info = "newton"
+        if st.button("🚀 Método de Newton"):
+            st.session_state.metodo_info = "newton"
 
-    if st.button("🎯 Gradiente Conjugado"):
-        st.session_state.metodo_info = "conjugado"<div class="method-card"><strong>🎯 Gradiente Conjugado</strong><span>Optimiza usando direcciones ortogonales. Evita repetir caminos explorados para avanzar con gran precisión.</span></div>""", unsafe_allow_html=True)
+        if st.button("🎯 Gradiente Conjugado"):
+            st.session_state.metodo_info = "conjugado"
 
     st.markdown("""
     <div class="instructions-box">
@@ -515,7 +516,7 @@ def main_app():
     </div>
     """, unsafe_allow_html=True)
 
-    st.title("⚙️ Calculadora de Optimización Académica")
+    st.title(" Calculadora de Optimización Académica")
     
     st.markdown("### 1. Definición del Problema")
     
