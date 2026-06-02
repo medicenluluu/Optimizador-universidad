@@ -31,36 +31,253 @@ if not st.session_state.user_name:
 st.markdown(
     """
     <style>
-    .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"] { background-color: #F0F7FF !important; }
-    [data-testid="stSidebar"], [data-testid="stSidebar"] > div { background-color: #E0F2FE !important; border-right: 1px solid #CBD5E1 !important; }
-    html, body, [data-testid="stAppViewContainer"], [data-testid="stSidebar"] { font-family: 'Times New Roman', Times, serif !important; }
-    p, span, label, li, .stMarkdown, [data-testid="stWidgetLabel"] p { font-family: 'Times New Roman', Times, serif !important; font-size: 16px !important; color: #1E293B !important; }
-    h1, h2, h3, h4 { font-family: 'Times New Roman', Times, serif !important; color: #0F172A !important; font-weight: bold !important; }
-    h1 { font-size: 32px !important; margin-bottom: 15px !important; }
-    h2 { font-size: 24px !important; margin-bottom: 12px !important; }
-    h3 { font-size: 20px !important; margin-top: 20px !important;}
-    h4 { font-size: 18px !important; margin-bottom: 10px !important;}
-    [data-testid="stForm"], .stFormCreator { background-color: #FFFFFF !important; border: 1px solid #E2E8F0 !important; border-radius: 12px !important; padding: 24px !important; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03) !important; }
-    .instructions-box { background-color: #FFFFFF; border-left: 5px solid #1E3A8A; padding: 20px 25px; border-radius: 10px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); margin-bottom: 25px; margin-top: 10px; }
-    .instructions-box ol { margin-bottom: 0; padding-left: 20px; }
-    .instructions-box li { font-size: 15.5px !important; margin-bottom: 6px; color: #334155 !important; }
-    .instructions-box code { background-color: #F1F5F9; color: #0F172A; padding: 2px 6px; border-radius: 4px; font-family: monospace !important; }
-    .method-card { background-color: #FFFFFF !important; padding: 14px; border-radius: 8px; border: 1px solid #CBD5E1; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02); }
-    .method-card strong { color: #1E3A8A !important; font-size: 15px !important; display: block; margin-bottom: 4px; }
-    .method-card span { font-size: 13.5px !important; color: #334155 !important; line-height: 1.3 !important; display: block; }
-    input, select, textarea, [data-baseweb="select"], [data-baseweb="input"] { background-color: #FFFFFF !important; color: #0F172A !important; font-family: 'Times New Roman', Times, serif !important; font-size: 16px !important; border: 1px solid #CBD5E1 !important; border-radius: 8px !important; }
-    [data-testid="stWidgetLabel"] *, input *, select * { color: #0F172A !important; }
-    div[data-baseweb="popover"], div[data-baseweb="popover"] *, div[role="listbox"], div[role="listbox"] *, ul[role="listbox"], ul[role="listbox"] *, li[role="option"], li[role="option"] * { background-color: #FFFFFF !important; color: #0F172A !important; font-family: 'Times New Roman', Times, serif !important; }
-    li[role="option"]:hover, li[role="option"]:hover *, div[data-baseweb="popover"] li:hover, div[data-baseweb="popover"] li:hover * { background-color: #E0F2FE !important; color: #1E3A8A !important; }
-    .stButton > button, [data-testid="stForm"] button, button[kind="primaryFormSubmit"] { background-color: #1E3A8A !important; color: #FFFFFF !important; font-family: 'Times New Roman', Times, serif !important; font-size: 16px !important; font-weight: bold !important; border: none !important; border-radius: 8px !important; padding: 8px 24px !important; width: 100% !important; transition: all 0.2s ease-in-out !important; box-shadow: 0 2px 4px rgba(30, 58, 138, 0.2) !important; }
-    .stButton > button *, [data-testid="stForm"] button * { color: #FFFFFF !important; }
-    .stButton > button:hover, [data-testid="stForm"] button:hover, button[kind="primaryFormSubmit"]:hover { background-color: #1D4ED8 !important; color: #FFFFFF !important; transform: translateY(-1px) !important; box-shadow: 0 4px 6px rgba(30, 58, 138, 0.3) !important; cursor: pointer; }
-    .stButton > button:hover *, [data-testid="stButton"] button:hover * { color: #FFFFFF !important; }
-    [data-testid="stDataFrame"] { background-color: #FFFFFF !important; border: 1px solid #E2E8F0 !important; border-radius: 10px !important; padding: 10px !important; box-shadow: 0 2px 4px rgba(0,0,0,0.02) !important; }
-    [data-testid="collapsedControl"], [data-testid="stSidebarCollapseButton"] { display: none !important; }
+
+    /* =========================
+       FONDO GENERAL
+    ========================= */
+
+    .stApp,
+    [data-testid="stAppViewContainer"],
+    [data-testid="stHeader"] {
+        background-color: #FFFFFF !important;
+    }
+
+    /* =========================
+       SIDEBAR
+    ========================= */
+
+    [data-testid="stSidebar"],
+    [data-testid="stSidebar"] > div {
+        background-color: #FFFFFF !important;
+        border-right: 1px solid #E5E7EB !important;
+    }
+
+    [data-testid="collapsedControl"],
+    [data-testid="stSidebarCollapseButton"] {
+        display: none !important;
+    }
+
+    /* =========================
+       TIPOGRAFÍA
+    ========================= */
+
+    html,
+    body,
+    [data-testid="stAppViewContainer"],
+    [data-testid="stSidebar"] {
+        font-family: "Times New Roman", Times, serif !important;
+    }
+
+    p,
+    span,
+    label,
+    li,
+    .stMarkdown,
+    [data-testid="stWidgetLabel"] p {
+        font-family: "Times New Roman", Times, serif !important;
+        font-size: 16px !important;
+        color: #000000 !important;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4 {
+        font-family: "Times New Roman", Times, serif !important;
+        color: #000000 !important;
+        font-weight: bold !important;
+    }
+
+    h1 {
+        font-size: 32px !important;
+        margin-bottom: 15px !important;
+    }
+
+    h2 {
+        font-size: 24px !important;
+        margin-bottom: 12px !important;
+    }
+
+    h3 {
+        font-size: 20px !important;
+        margin-top: 20px !important;
+    }
+
+    h4 {
+        font-size: 18px !important;
+        margin-bottom: 10px !important;
+    }
+
+    /* =========================
+       FORMULARIOS
+    ========================= */
+
+    [data-testid="stForm"],
+    .stFormCreator {
+        background-color: #FFFFFF !important;
+        border: 1px solid #E5E7EB !important;
+        border-radius: 12px !important;
+        padding: 24px !important;
+        box-shadow: none !important;
+    }
+
+    /* =========================
+       CAJA DE INSTRUCCIONES
+    ========================= */
+
+    .instructions-box {
+        background-color: #FFFFFF;
+        border: 1px solid #E5E7EB;
+        border-radius: 10px;
+        padding: 20px 25px;
+        margin-bottom: 25px;
+        margin-top: 10px;
+    }
+
+    .instructions-box ol {
+        margin-bottom: 0;
+        padding-left: 20px;
+    }
+
+    .instructions-box li {
+        color: #000000 !important;
+    }
+
+    .instructions-box code {
+        background-color: #F3F4F6;
+        color: #000000;
+        padding: 2px 6px;
+        border-radius: 4px;
+    }
+
+    /* =========================
+       TARJETAS SIDEBAR
+    ========================= */
+
+    .method-card {
+        background-color: #FFFFFF;
+        border: 1px solid #E5E7EB;
+        border-radius: 8px;
+        padding: 14px;
+        margin-bottom: 12px;
+        box-shadow: none;
+    }
+
+    .method-card strong {
+        color: #000000 !important;
+        display: block;
+        margin-bottom: 4px;
+    }
+
+    .method-card span {
+        color: #4B5563 !important;
+    }
+
+    /* =========================
+       INPUTS
+    ========================= */
+
+    input,
+    select,
+    textarea,
+    [data-baseweb="select"],
+    [data-baseweb="input"] {
+        background-color: #FFFFFF !important;
+        color: #000000 !important;
+        border: 1px solid #D1D5DB !important;
+        border-radius: 8px !important;
+    }
+
+    [data-testid="stWidgetLabel"] *,
+    input *,
+    select * {
+        color: #000000 !important;
+    }
+
+    /* =========================
+       DROPDOWNS
+    ========================= */
+
+    div[data-baseweb="popover"],
+    div[data-baseweb="popover"] *,
+    div[role="listbox"],
+    div[role="listbox"] *,
+    ul[role="listbox"],
+    ul[role="listbox"] *,
+    li[role="option"],
+    li[role="option"] * {
+        background-color: #FFFFFF !important;
+        color: #000000 !important;
+    }
+
+    li[role="option"]:hover,
+    li[role="option"]:hover *,
+    div[data-baseweb="popover"] li:hover,
+    div[data-baseweb="popover"] li:hover * {
+        background-color: #F3F4F6 !important;
+        color: #000000 !important;
+    }
+
+    /* =========================
+       BOTONES
+    ========================= */
+
+    .stButton > button,
+    [data-testid="stForm"] button,
+    button[kind="primaryFormSubmit"] {
+
+        background-color: #2563EB !important;
+        color: #FFFFFF !important;
+
+        border: none !important;
+        border-radius: 8px !important;
+
+        font-size: 16px !important;
+        font-weight: bold !important;
+
+        width: 100% !important;
+        padding: 10px 24px !important;
+
+        transition: 0.2s ease !important;
+    }
+
+    .stButton > button:hover,
+    [data-testid="stForm"] button:hover,
+    button[kind="primaryFormSubmit"]:hover {
+
+        background-color: #1D4ED8 !important;
+        transform: translateY(-1px);
+    }
+
+    .stButton > button *,
+    [data-testid="stForm"] button * {
+        color: #FFFFFF !important;
+    }
+
+    /* =========================
+       TABLAS
+    ========================= */
+
+    [data-testid="stDataFrame"] {
+        background-color: #FFFFFF !important;
+        border: 1px solid #E5E7EB !important;
+        border-radius: 10px !important;
+        padding: 10px !important;
+        box-shadow: none !important;
+    }
+
+    /* =========================
+       MÉTRICAS / ALERTAS
+    ========================= */
+
+    [data-testid="stAlert"] {
+        border-radius: 10px !important;
+    }
+
     </style>
     """,
     unsafe_allow_html=True
+
 
 )
 
