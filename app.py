@@ -6,45 +6,65 @@ import re
 import plotly.graph_objects as go
 
 # 1. Configuración de página
-st.set_page_config(page_title="OptiCalc Pro", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="Calculadora de Optimización", layout="wide", initial_sidebar_state="expanded")
 
 # --- BLOQUE DE LOGIN ---
 if "user_name" not in st.session_state:
     st.session_state.user_name = ""
 
 if not st.session_state.user_name:
-    st.markdown("<h1 style='text-align: center; color: #1E3A8A;'>⚙️ OptiCalc Pro</h1>", unsafe_allow_html=True)
-    st.markdown("<h3 style='text-align: center;'>Plataforma Avanzada de Optimización Numérica</h3>", unsafe_allow_html=True)
-    st.write("---")
+    st.markdown("<h1 style='text-align: center; color: #1E3A8A; font-family: \"Times New Roman\", Times, serif;'>⚙️ Calculadora de Optimización Académica</h1>", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align: center; font-family: \"Times New Roman\", Times, serif;'>Bienvenido</h3>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; font-family: \"Times New Roman\", Times, serif;'>Por favor, ingresa tu nombre para comenzar a usar la calculadora.</p>", unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        st.info("👋 Por favor, identifícate para iniciar la sesión de estudio.")
-        name_input = st.text_input("Ingresa tu nombre o matrícula:")
-        if st.button("Ingresar a la Plataforma", use_container_width=True):
+        name_input = st.text_input("Tu nombre:")
+        if st.button("Entrar a la aplicación", use_container_width=True):
             if name_input.strip():
                 st.session_state.user_name = name_input.strip()
                 st.rerun() 
             else:
-                st.warning("El nombre es obligatorio.")
+                st.warning("Por favor, escribe un nombre primero.")
     st.stop()
 # --- FIN BLOQUE DE LOGIN ---
 
-# 2. Inyección de CSS (Diseño mejorado)
+# 2. Inyección de CSS (Diseño Académico Conservado + Potenciado)
 st.markdown(
     """
     <style>
-    .stApp { background-color: #F8FAFC !important; }
-    [data-testid="stSidebar"] { background-color: #FFFFFF !important; border-right: 1px solid #E2E8F0 !important; }
-    h1, h2, h3 { color: #0F172A !important; font-family: 'Inter', sans-serif !important; font-weight: 700 !important; }
-    .metric-card { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid #E2E8F0; text-align: center;}
-    .metric-title { font-size: 14px; color: #64748B; text-transform: uppercase; font-weight: 600;}
+    /* Restaurando colores y tipografía original */
+    .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"] { background-color: #F0F7FF !important; }
+    [data-testid="stSidebar"], [data-testid="stSidebar"] > div { background-color: #E0F2FE !important; border-right: 1px solid #CBD5E1 !important; }
+    html, body, [data-testid="stAppViewContainer"], [data-testid="stSidebar"] { font-family: 'Times New Roman', Times, serif !important; }
+    p, span, label, li, .stMarkdown, [data-testid="stWidgetLabel"] p { font-family: 'Times New Roman', Times, serif !important; font-size: 16px !important; color: #1E293B !important; }
+    h1, h2, h3, h4 { font-family: 'Times New Roman', Times, serif !important; color: #0F172A !important; font-weight: bold !important; }
+    h1 { font-size: 32px !important; margin-bottom: 15px !important; }
+    h2 { font-size: 24px !important; margin-bottom: 12px !important; }
+    h3 { font-size: 20px !important; margin-top: 20px !important;}
+    h4 { font-size: 18px !important; margin-bottom: 10px !important;}
+    
+    /* Cajas y Botones originales */
+    .instructions-box { background-color: #FFFFFF; border-left: 5px solid #1E3A8A; padding: 20px 25px; border-radius: 10px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); margin-bottom: 25px; margin-top: 10px; }
+    .instructions-box ol { margin-bottom: 0; padding-left: 20px; }
+    .instructions-box li { font-size: 15.5px !important; margin-bottom: 6px; color: #334155 !important; }
+    .method-card { background-color: #FFFFFF !important; padding: 14px; border-radius: 8px; border: 1px solid #CBD5E1; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02); }
+    .method-card strong { color: #1E3A8A !important; font-size: 15px !important; display: block; margin-bottom: 4px; }
+    .method-card span { font-size: 13.5px !important; color: #334155 !important; line-height: 1.3 !important; display: block; }
+    
+    .stButton > button, [data-testid="stForm"] button { background-color: #1E3A8A !important; color: #FFFFFF !important; font-family: 'Times New Roman', Times, serif !important; font-size: 16px !important; font-weight: bold !important; border: none !important; border-radius: 8px !important; padding: 8px 24px !important; transition: all 0.2s ease-in-out !important; box-shadow: 0 2px 4px rgba(30, 58, 138, 0.2) !important; }
+    .stButton > button:hover { background-color: #1D4ED8 !important; transform: translateY(-1px) !important; box-shadow: 0 4px 6px rgba(30, 58, 138, 0.3) !important; cursor: pointer; }
+    
+    /* Nuevas Métricas y Caja de Insights (Estilo Premium adaptado al clásico) */
+    .metric-card { background: #FFFFFF; padding: 15px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid #CBD5E1; text-align: center;}
+    .metric-title { font-size: 14px; color: #64748B; text-transform: uppercase; font-weight: bold;}
     .metric-value { font-size: 24px; color: #1E3A8A; font-weight: bold;}
-    .method-card { background-color: #F1F5F9 !important; padding: 14px; border-radius: 8px; border-left: 4px solid #3B82F6; margin-bottom: 12px; }
-    .method-card strong { color: #1E40AF !important; font-size: 15px !important; display: block; margin-bottom: 4px; }
-    .stButton > button { background-color: #2563EB !important; color: white !important; font-weight: bold !important; border-radius: 8px !important; border: none !important; transition: all 0.3s ease !important; }
-    .stButton > button:hover { background-color: #1D4ED8 !important; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3) !important; }
-    [data-testid="stDataFrame"] { border-radius: 10px !important; overflow: hidden !important; border: 1px solid #E2E8F0 !important;}
+    .insight-box { background-color: #F8FAFC; border: 1px solid #38BDF8; border-left: 6px solid #0284C7; padding: 20px; border-radius: 8px; margin-top: 15px; margin-bottom: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+    .insight-box h4 { margin-top: 0; color: #0369A1 !important; display: flex; align-items: center; gap: 8px; }
+    .insight-box ul { margin-bottom: 0; }
+    .insight-box li { margin-bottom: 8px; }
+    
+    [data-testid="stDataFrame"] { background-color: #FFFFFF !important; border: 1px solid #E2E8F0 !important; border-radius: 10px !important; padding: 10px !important; box-shadow: 0 2px 4px rgba(0,0,0,0.02) !important; }
     </style>
     """,
     unsafe_allow_html=True
@@ -208,58 +228,77 @@ def run_conjugate_gradient(expr, vars_sym, x0, alpha_type, alpha_val, max_iter, 
 # --- Interfaz de Usuario Principal ---
 def main_app():
     with st.sidebar:
-        st.markdown(f"### 👤 Usuario: {st.session_state.user_name}")
-        st.markdown("<hr>", unsafe_allow_html=True)
-        st.markdown("### 💡 Algoritmos Disponibles")
-        st.markdown("""<div class="method-card"><strong>📉 Método del Gradiente</strong><span>Ideal para funciones convexas simples.</span></div>""", unsafe_allow_html=True)
-        st.markdown("""<div class="method-card"><strong>🚀 Método de Newton</strong><span>Utiliza la Hessiana para convergencia cuadrática.</span></div>""", unsafe_allow_html=True)
-        st.markdown("""<div class="method-card"><strong>🎯 Gradiente Conjugado</strong><span>Optimiza usando direcciones conjugadas.</span></div>""", unsafe_allow_html=True)
+        st.write(f"👤 Usuario: **{st.session_state.user_name}**")
+        st.markdown("<hr style='margin: 12px 0; border-color: #CBD5E1;'>", unsafe_allow_html=True)
+        st.markdown("### 💡 Diccionario de Métodos")
+        st.markdown("""<div class="method-card"><strong>📉 Método del Gradiente</strong><span>Fácil de usar para buscar mínimos locales moviéndose en la dirección del gradiente negativo.</span></div>""", unsafe_allow_html=True)
+        st.markdown("""<div class="method-card"><strong>🚀 Método de Newton</strong><span>Utiliza la pendiente y la curvatura (Hessiana) para determinar un paso ultra rápido, ideal para soluciones cercanas al óptimo.</span></div>""", unsafe_allow_html=True)
+        st.markdown("""<div class="method-card"><strong>🎯 Gradiente Conjugado</strong><span>Optimiza usando direcciones ortogonales. Evita repetir caminos explorados para avanzar con gran precisión.</span></div>""", unsafe_allow_html=True)
         if st.button("Cerrar Sesión"):
             st.session_state.user_name = ""
             st.rerun()
 
-    st.title("⚙️ OptiCalc Pro")
-    st.markdown("Calculadora Avanzada de Optimización Matemática con Trazado Interactivo.")
+    st.markdown("""
+    <div class="instructions-box">
+        <h4>📖 Resuelve tus Guías de Estudio</h4>
+        <ol>
+            <li><strong>Variables Flexibles:</strong> Escribe <code>x, y</code> o <code>x1, x2</code> dependiendo de tu problema.</li>
+            <li><strong>Manejo de logaritmos:</strong> Usa <code>ln()</code> o <code>log()</code> sin problema.</li>
+            <li><strong>Reporte Detallado:</strong> Selecciona Método del Gradiente + Armijo para ver el paso a paso exacto como en los exámenes universitarios.</li>
+        </ol>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.title("⚙️ Calculadora de Optimización Académica")
     
-    with st.expander("📝 Configuración del Problema Matemático", expanded=True):
-        col1, col2, col3 = st.columns([1, 2, 1])
-        with col1:
-            vars_input = st.text_input("Variables (ej. x, y)", value="x, y")
-            vars_names = [v.strip() for v in vars_input.split(',')]
-        with col2:
-            func_input = st.text_input("Función Objetivo C(x)", value="x**2 + y**2 - x*y")
-        with col3:
-            start_point = st.text_input("Punto Inicial (x0)", value="4, 4")
+    st.markdown("### 1. Definición del Problema")
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col1:
+        vars_input = st.text_input("Variables (separadas por coma)", value="x, y")
+        vars_names = [v.strip() for v in vars_input.split(',')]
+    with col2:
+        func_input = st.text_input(f"Función C({', '.join(vars_names)})", value="x**2 + y**2 - x*y")
+    with col3:
+        start_point = st.text_input("Punto inicial (x0, y0)", value="4, 4")
 
-        st.markdown("---")
-        col_m1, col_m2, col_m3 = st.columns([1, 1, 1])
-        with col_m1:
-            method = st.selectbox("Método de Optimización:", ["Método del Gradiente", "Método de Newton", "Método del Gradiente Conjugado"])
-            max_iter = st.number_input("Iteraciones Máximas", value=20, min_value=1)
-        with col_m2:
-            if method == "Método de Newton":
-                st.info("El paso es calculado dinámicamente con la Matriz Hessiana inversa.")
-                alpha_type = "Newton"
-                alpha_val = None
-            elif method == "Método del Gradiente Conjugado":
-                alpha_type = st.radio("Tamaño de paso (α):", ["Fijo", "Búsqueda (Armijo)"], horizontal=True)
-                alpha_val = st.number_input("Valor de α:", value=0.1, format="%.4f")
+    st.markdown("### 2. Parámetros del Algoritmo")
+    col_m1, col_m2, col_m3 = st.columns([1, 1, 1])
+    with col_m1:
+        method = st.selectbox("Método de optimización:", ["Método del Gradiente", "Método de Newton", "Método del Gradiente Conjugado"])
+        max_iter = st.number_input("Iteraciones máximas", value=20, min_value=1)
+    with col_m2:
+        if method == "Método de Newton":
+            st.info("El Método de Newton calcula su propio paso dinámicamente con la Matriz Hessiana.")
+            alpha_type = "Newton"
+            alpha_val = None
+        elif method == "Método del Gradiente Conjugado":
+            alpha_type = st.radio("Cálculo del tamaño de paso (alfa) para GC:", ["Fijo", "Búsqueda de línea (Armijo)"], horizontal=True)
+            alpha_val = st.number_input("Valor de alfa (GC):", value=0.1, format="%.4f")
+        else:
+            alpha_type = st.radio("Cálculo del paso (alfa):", ["Fijo", "Wolfe (Armijo)"], index=1, horizontal=True)
+            if alpha_type == "Fijo":
+                alpha_val = st.number_input("Valor de alfa:", value=0.1, format="%.4f")
             else:
-                alpha_type = st.radio("Cálculo de Paso:", ["Fijo", "Wolfe (Armijo)"], index=1, horizontal=True)
-                if alpha_type == "Fijo":
-                    alpha_val = st.number_input("Valor de α:", value=0.1, format="%.4f")
-                else:
-                    alpha_val = 0.0 
-                    wolfe_params = {
-                        'alpha_init': st.number_input("α inicial:", value=1.0, format="%.4f"),
-                        'rho': st.number_input("Factor ρ:", value=0.5, format="%.4f"),
-                        'c1': st.number_input("Factor c1 (Armijo):", value=0.1, format="%.4f")
-                    }
-        with col_m3:
-            tolerancia = st.number_input("Tolerancia (Criterio de Parada)", value=0.001, format="%.4f")
-            norm_type = st.selectbox("Norma para Error Relativo:", ["L_infinito (Máximo)", "L2 (Euclidiana)", "L1 (Manhattan)"])
+                alpha_val = 0.0 
+                wolfe_params = {
+                    'alpha_init': st.number_input("Alfa inicial (α_0):", value=1.0, format="%.4f"),
+                    'rho': st.number_input("Rho (ρ - reducción):", value=0.5, format="%.4f"),
+                    'c1': st.number_input("Beta (β - Armijo):", value=0.1, format="%.4f")
+                }
+    with col_m3:
+        tolerancia = st.number_input("Tolerancia", value=0.001, format="%.4f")
+        norm_type = st.selectbox("Norma para Error Relativo:", ["L_infinito (Máximo)", "L2 (Euclidiana)", "L1 (Manhattan)"])
+        if method == "Método del Gradiente":
+            show_exam_mode = st.checkbox("🔍 Mostrar Detalles en Modo Examen", value=True)
 
-    if st.button("🚀 Ejecutar Optimización", use_container_width=True):
+    st.markdown("<br>", unsafe_allow_html=True)
+    col_btn1, col_btn2, col_btn3 = st.columns([1, 1, 1])
+    with col_btn2:
+        execute = st.button("▶ Resolver Problema", use_container_width=True)
+
+    if execute:
+        st.markdown("---")
+        st.markdown("### 3. Resultados y Análisis")
         vars_sym = sp.symbols(' '.join(vars_names))
         if len(vars_names) == 1: vars_sym = [vars_sym]
         expr = parse_function(func_input, vars_sym)
@@ -269,7 +308,7 @@ def main_app():
             x0 = [float(i) for i in clean_str.split(',') if i.strip()]
             
             if expr is not None and len(x0) == len(vars_names):
-                with st.spinner("Optimizando y generando gráficos interactivos..."):
+                with st.spinner("Realizando cálculos..."):
                     if method == "Método del Gradiente":
                         results, bt_log, grad_exprs = run_gradient_descent(expr, vars_sym, x0, alpha_type, alpha_val, wolfe_params if alpha_type=="Wolfe (Armijo)" else None, int(max_iter), tolerancia, norm_type)
                     elif method == "Método de Newton":
@@ -277,37 +316,65 @@ def main_app():
                     else:
                         results = run_conjugate_gradient(expr, vars_sym, x0, alpha_type, alpha_val, int(max_iter), tolerancia, norm_type)
 
-                # DASHBOARD KPIs
-                st.markdown("### 📊 Resumen de Resultados")
+                # --- KPIs Estilo Dashboard (Adaptado al color académico) ---
                 kpi1, kpi2, kpi3, kpi4 = st.columns(4)
                 final_row = results.iloc[-1]
                 
-                kpi1.markdown(f"<div class='metric-card'><div class='metric-title'>Iteraciones</div><div class='metric-value'>{int(final_row['Iteración'])}</div></div>", unsafe_allow_html=True)
+                kpi1.markdown(f"<div class='metric-card'><div class='metric-title'>Iteraciones Tomadas</div><div class='metric-value'>{int(final_row['Iteración'])}</div></div>", unsafe_allow_html=True)
                 kpi2.markdown(f"<div class='metric-card'><div class='metric-title'>Valor Final C(x)</div><div class='metric-value'>{final_row['C(x)']:.4f}</div></div>", unsafe_allow_html=True)
                 kpi3.markdown(f"<div class='metric-card'><div class='metric-title'>Error Relativo Final</div><div class='metric-value'>{final_row['Error Rel. (%)']:.4f}%</div></div>", unsafe_allow_html=True)
-                kpi4.markdown(f"<div class='metric-card'><div class='metric-title'>Norma del Gradiente</div><div class='metric-value'>{final_row['||∇C(x)||']:.4f}</div></div>", unsafe_allow_html=True)
+                kpi4.markdown(f"<div class='metric-card'><div class='metric-title'>Norma del Gradiente</div><div class='metric-value'>{final_row['||∇C(x)||']:.4e}</div></div>", unsafe_allow_html=True)
                 st.write("")
 
-                # SISTEMA DE PESTAÑAS (TABS)
-                tab_graficos, tab_datos, tab_examen = st.tabs(["📈 Gráficos Interactivos", "🗄️ Tabla de Datos", "📚 Modo Examen (Detalle)"])
+                # --- 🧠 MOTOR DE INSIGHTS (Análisis Diferenciador) ---
+                final_iter = int(results.iloc[-1]['Iteración'])
+                mejor_cx = results.iloc[-1]['C(x)']
+                inicial_cx = results.iloc[0]['C(x)']
+                mejora_total = inicial_cx - mejor_cx
+                grad_final = results.iloc[-1]['||∇C(x)||']
+                
+                insight_html = "<div class='insight-box'><h4>💡 Análisis de Inteligencia Matemática</h4><ul>"
+                
+                # Insight de Iteraciones
+                if final_iter < max_iter:
+                    insight_html += f"<li><b>Velocidad de Convergencia:</b> El método logró converger de manera anticipada en la iteración <b>{final_iter}</b> cumpliendo con la tolerancia. Esto indica que el paso (alfa) y el método seleccionado fueron muy eficientes para este problema.</li>"
+                else:
+                    insight_html += f"<li><b>Límite Alcanzado:</b> El proceso alcanzó el límite máximo de <b>{max_iter} iteraciones</b> antes de llegar a la tolerancia estricta. Considera aumentar las iteraciones o modificar el tamaño de paso si notas que avanza muy lento.</li>"
+                
+                # Insight de Mejora
+                if mejora_total > 0:
+                    insight_html += f"<li><b>Calidad de Optimización:</b> Excelente. El valor de la función se redujo en <b>{mejora_total:.4f}</b> unidades respecto a tu punto de partida original.</li>"
+                elif mejora_total < 0:
+                    insight_html += f"<li><b>Advertencia de Divergencia:</b> El valor de C(x) <i>aumentó</i>. Esto suele ocurrir cuando el tamaño de paso es muy grande y el algoritmo 'salta' por encima del valle. ¡Prueba reduciendo el valor de Alfa!</li>"
+                
+                # Insight de Gradiente
+                if grad_final < 1e-2:
+                    insight_html += f"<li><b>Confirmación de Óptimo:</b> La norma del gradiente final es sumamente cercana a cero (<code>{grad_final:.2e}</code>). Matemáticamente, esto nos garantiza que estás parado casi exactamente sobre un punto crítico (mínimo local).</li>"
+                else:
+                    insight_html += f"<li><b>Fuerza del Gradiente:</b> La magnitud del gradiente aún es de <code>{grad_final:.4f}</code>. Significa que la función aún tiene cierta pendiente y no hemos tocado el 'fondo' exacto del valle matemático.</li>"
+                    
+                insight_html += "</ul></div>"
+                st.markdown(insight_html, unsafe_allow_html=True)
+
+                # --- SISTEMA DE PESTAÑAS (TABS) ---
+                tab_graficos, tab_datos, tab_examen = st.tabs(["📈 Gráficos Interactivos", "🗄️ Tabla de Iteraciones", "📚 Modo Examen (Detalle)"])
 
                 with tab_graficos:
                     col_plot1, col_plot2 = st.columns(2)
                     
                     with col_plot1:
-                        st.subheader("Convergencia del Error")
+                        st.subheader("Evolución del Error Relativo")
                         if len(results) > 1:
                             fig_err = go.Figure()
-                            fig_err.add_trace(go.Scatter(x=results['Iteración'][1:], y=results['Error Rel. (%)'][1:], mode='lines+markers', line=dict(color='#10B981', width=3)))
-                            fig_err.update_layout(title="Reducción del Error por Iteración", xaxis_title="Iteración", yaxis_title="Error Relativo (%)", yaxis_type="log", template="plotly_white")
+                            fig_err.add_trace(go.Scatter(x=results['Iteración'][1:], y=results['Error Rel. (%)'][1:], mode='lines+markers', line=dict(color='#1E3A8A', width=2), marker=dict(color='#EF4444', size=6)))
+                            fig_err.update_layout(xaxis_title="Iteración (k)", yaxis_title="Error Relativo (%)", yaxis_type="log", template="plotly_white", margin=dict(l=20, r=20, t=40, b=20))
                             st.plotly_chart(fig_err, use_container_width=True)
                         else:
-                            st.info("Convergencia en un solo paso.")
+                            st.info("Convergencia alcanzada en el primer intento.")
 
                     with col_plot2:
-                        st.subheader("Trayectoria de Optimización")
+                        st.subheader("Comportamiento / Trayectoria")
                         if len(vars_names) == 2:
-                            # Gráfico de Contorno Interactivo con Plotly
                             f_lamb = sp.lambdify(vars_sym, expr, 'numpy')
                             x_vals = results[f'{vars_names[0]}'].values
                             y_vals = results[f'{vars_names[1]}'].values
@@ -319,12 +386,12 @@ def main_app():
                             
                             try:
                                 Z = f_lamb(X, Y)
-                                fig_cont = go.Figure(data=go.Contour(z=Z, x=x_range, y=y_range, colorscale='Blues', opacity=0.8))
-                                fig_cont.add_trace(go.Scatter(x=x_vals, y=y_vals, mode='lines+markers', marker=dict(size=8, color='red'), line=dict(color='red', width=2), name="Camino"))
-                                fig_cont.update_layout(title="Mapa de Contorno Interactivo", xaxis_title=vars_names[0], yaxis_title=vars_names[1], template="plotly_white")
+                                fig_cont = go.Figure(data=go.Contour(z=Z, x=x_range, y=y_range, colorscale='Blues', opacity=0.7))
+                                fig_cont.add_trace(go.Scatter(x=x_vals, y=y_vals, mode='lines+markers', marker=dict(size=8, color='#EF4444'), line=dict(color='#EF4444', width=2), name="Trayectoria"))
+                                fig_cont.update_layout(xaxis_title=vars_names[0], yaxis_title=vars_names[1], template="plotly_white", margin=dict(l=20, r=20, t=40, b=20))
                                 st.plotly_chart(fig_cont, use_container_width=True)
                             except:
-                                st.warning("La función es demasiado compleja para renderizar el fondo de contorno de forma segura.")
+                                st.warning("La función ingresada es demasiado compleja para renderizar el fondo de contorno topográfico de forma segura.")
                         elif len(vars_names) == 1:
                             f_lamb = sp.lambdify(vars_sym, expr, 'numpy')
                             x_vals = results[f'{vars_names[0]}'].values
@@ -333,44 +400,87 @@ def main_app():
                             y_range = [f_lamb(v) for v in x_range]
                             
                             fig_1d = go.Figure()
-                            fig_1d.add_trace(go.Scatter(x=x_range, y=y_range, mode='lines', name='C(x)', line=dict(color='#1E3A8A')))
-                            fig_1d.add_trace(go.Scatter(x=x_vals, y=results['C(x)'].values, mode='markers+lines', name='Pasos', marker=dict(color='red', size=8)))
-                            fig_1d.update_layout(title="Evaluación de C(x)", template="plotly_white")
+                            fig_1d.add_trace(go.Scatter(x=x_range, y=y_range, mode='lines', name='C(x)', line=dict(color='#1E3A8A', width=2)))
+                            fig_1d.add_trace(go.Scatter(x=x_vals, y=results['C(x)'].values, mode='markers+lines', name='Iteraciones', marker=dict(color='#EF4444', size=8)))
+                            fig_1d.update_layout(xaxis_title=f"{vars_names[0]}", yaxis_title="C(x)", template="plotly_white", margin=dict(l=20, r=20, t=40, b=20))
                             st.plotly_chart(fig_1d, use_container_width=True)
                         else:
                             st.info("La representación espacial gráfica está disponible solo para 1 o 2 variables.")
 
                 with tab_datos:
-                    st.subheader("Historial de Iteraciones")
+                    st.subheader("Historial Completo")
                     st.dataframe(results, use_container_width=True)
-                    # Añadir botón de descarga CSV
                     csv = results.to_csv(index=False).encode('utf-8')
-                    st.download_button(label="📥 Descargar Tabla (CSV)", data=csv, file_name='optimizacion_historial.csv', mime='text/csv')
+                    st.download_button(label="📥 Exportar Resultados a CSV (Excel)", data=csv, file_name='optimizacion_historial.csv', mime='text/csv')
 
                 with tab_examen:
-                    if method == "Método del Gradiente" and alpha_type == "Wolfe (Armijo)":
-                        st.subheader("📝 Resolución Paso a Paso (Primera Iteración)")
-                        st.markdown("**1. Gradiente Analítico**")
+                    if method == "Método del Gradiente" and show_exam_mode:
+                        st.info("📚 **Detalle Académico (Iteración 0 a 1)**")
+                        st.markdown("### (a) Una iteración de descenso por gradiente")
+                        
+                        st.markdown("**1. Gradiente de $C(" + ", ".join(vars_names) + ")$**")
                         st.latex(r"\nabla C = \left( " + r", \quad ".join([sp.latex(g) for g in grad_exprs]) + r" \right)")
                         
+                        x0_str = ", ".join([f"{v:g}" for v in x0])
+                        x0_tuple = f"({x0_str})" if len(x0) > 1 else f"{x0[0]:g}"
+                        
                         g0_vals = np.array([results.iloc[0][f'g_{v}'] for v in vars_sym])
-                        g0_tuple = f"({', '.join([f'{v:g}' for v in g0_vals])})"
-                        st.markdown(f"Evaluando en $x_0$: $\\nabla C = {g0_tuple}$")
+                        g0_str = ", ".join([f"{v:g}" for v in g0_vals])
+                        g0_tuple = f"({g0_str})" if len(g0_vals) > 1 else f"{g0_vals[0]:g}"
                         
-                        st.markdown("**2. Dirección de Descenso**")
-                        st.latex(rf"d^{{(0)}} = -\nabla C(x^{{(0)}}) = {tuple(-g0_vals) if len(g0_vals)>1 else -g0_vals[0]}")
+                        st.markdown(f"Evaluando en ${x0_tuple}$:")
+                        st.latex(rf"\nabla C{x0_tuple} = {g0_tuple}")
                         
-                        if not bt_log.empty:
-                            st.markdown("**3. Búsqueda de Armijo**")
-                            st.dataframe(bt_log)
-                            st.success("Se muestra la tabla de búsqueda para encontrar el $\\alpha$ que cumple la condición.")
+                        d0_vals = -g0_vals
+                        d0_str = ", ".join([f"{v:g}" for v in d0_vals])
+                        d0_tuple = f"({d0_str})" if len(d0_vals) > 1 else f"{d0_vals[0]:g}"
+                        
+                        st.markdown("La dirección de descenso es")
+                        st.latex(rf"d^{{(0)}} = -\nabla C(x^{{(0)}}) = {d0_tuple}")
+                        
+                        if alpha_type == "Wolfe (Armijo)" and not bt_log.empty:
+                            f0_val = results.iloc[0]['C(x)']
+                            dot_g0_d0 = np.dot(g0_vals, d0_vals)
+                            row_0 = bt_log.iloc[0]
+                            a0 = row_0['Alfa (α)']
+                            
+                            st.markdown(f"**2. Probar $\\alpha_0 = {a0}$ (Condición de Armijo)**")
+                            cand_0 = x0 + a0 * d0_vals
+                            cand_0_str = ", ".join([f"{v:g}" for v in cand_0])
+                            cand_0_tuple = f"({cand_0_str})" if len(cand_0) > 1 else f"{cand_0[0]:g}"
+                            
+                            st.markdown("Punto candidato:")
+                            st.latex(rf"x^{{(0)}} + \alpha_0 d^{{(0)}} = {cand_0_tuple}")
+                            
+                            f_cand_0 = row_0['C(x + αd)']
+                            st.markdown("Valor de la función en el candidato:")
+                            st.latex(rf"C{cand_0_tuple} = {f_cand_0:g}")
+                            
+                            st.markdown("**3. Backtracking (Búsqueda)**")
+                            st.dataframe(bt_log, use_container_width=True)
+                            
+                        if len(results) > 1:
+                            st.markdown(f"### (b) Error porcentual de la iteración usando norma")
+                            norm_symbol = norm_type.split('_')[0].replace("L", "")
+                            
+                            st.latex(r"E = \frac{\|x^{(1)} - x^{(0)}\|_{" + norm_symbol + r"}}{\|x^{(1)}\|_{" + norm_symbol + r"}} \times 100\%")
+                            x1_vals = np.array([results.iloc[1][f'{v}'] for v in vars_sym])
+                            diff_vals = x1_vals - x0
+                            
+                            ord_val = np.inf if "infinito" in norm_type else (1 if "L1" in norm_type else 2)
+                            num_val = np.linalg.norm(diff_vals, ord=ord_val)
+                            den_val = np.linalg.norm(x1_vals, ord=ord_val)
+                            E_val = (num_val / den_val) * 100 if den_val != 0 else 0
+                            
+                            st.markdown("Resultado del Error:")
+                            st.latex(rf"\boxed{{E = {E_val:g}\%}}")
                     else:
-                        st.info("El Modo Examen detallado está habilitado configurando: Método del Gradiente + Wolfe (Armijo).")
+                        st.info("Para ver el Modo Examen detallado debes marcar la casilla en los parámetros.")
 
             else:
-                st.error("Error de Dimensiones: El punto inicial no coincide con el número de variables.")
+                st.error("Error de Dimensiones: Asegúrate de que el punto inicial coincida con la cantidad de variables.")
         except Exception as e:
-            st.error(f"Se encontró un error matemático: {e}")
+            st.error(f"Se encontró un error matemático/sintáctico: {e}")
 
 if __name__ == "__main__":
     main_app()
