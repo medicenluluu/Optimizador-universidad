@@ -71,7 +71,7 @@ st.markdown(
 )
 
 # --- Funciones de Matemáticas ---
-@st.cache_data
+# Se eliminó el decorador @st.cache_data para evitar el UnhashableParamError
 def parse_function(func_str, vars_list):
     try:
         func_str = func_str.replace('^', '**').replace('ln', 'log')
