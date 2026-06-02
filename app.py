@@ -570,5 +570,5 @@ def main_app():
         except Exception as e:
             st.error(f"Se encontró un error matemático/sintáctico: {e}")
 
-if _name_ == "_main_":
+if __name__ == "__main__":
     main_app()
