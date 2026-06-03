@@ -49,7 +49,7 @@ st.markdown(
     [data-testid="stSidebar"],
     [data-testid="stSidebar"] > div {
         background-color: #FFFFFF !important;
-        border-right: 1px solid #E5E7EB !important;
+        border-right: 1px solid #FFFFFF !important;
     }
 
     [data-testid="collapsedControl"],
@@ -115,7 +115,7 @@ st.markdown(
     [data-testid="stForm"],
     .stFormCreator {
         background-color: #FFFFFF !important;
-        border: 1px solid #E5E7EB !important;
+        border: 1px solid #FFFFFF !important;
         border-radius: 12px !important;
         padding: 24px !important;
         box-shadow: none !important;
