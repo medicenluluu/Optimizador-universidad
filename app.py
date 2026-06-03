@@ -245,7 +245,7 @@ st.markdown(
     [data-testid="stForm"] button:hover,
     button[kind="primaryFormSubmit"]:hover {
 
-        background-color: #1D4ED8 !important;
+        background-color: #FFFFFF !important;
         transform: translateY(-1px);
     }
 
