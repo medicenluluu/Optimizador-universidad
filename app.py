@@ -668,7 +668,7 @@ def main_app():
                 col_g1, col_g2 = st.columns(2)
                 
                 with col_g1:
-                    st.markdown("#### (i) y (iv) Trayectoria en C(x)")
+                    st.markdown("#### Trayectoria y Curvas de Nivel")
                     f_lambdified_plot = sp.lambdify(vars_sym, expr, 'numpy')
                     
                     # Conservamos el gráfico 2D para 1 variable
@@ -718,6 +718,7 @@ def main_app():
                                 except:
                                     Z[i,j] = np.nan
                                     
+                        # --- Gráfico 3D (Superficie y Trayectoria) ---
                         fig_3d = go.Figure()
                         
                         # Capa 1: Superficie de la función
@@ -729,7 +730,7 @@ def main_app():
                             showscale=False
                         ))
                         
-                        # Capa 2: Trayectoria de optimización (puntos y líneas de las iteraciones)
+                        # Capa 2: Trayectoria de optimización
                         fig_3d.add_trace(go.Scatter3d(
                             x=x_hist, y=y_hist, z=z_hist,
                             mode='lines+markers',
@@ -738,9 +739,8 @@ def main_app():
                             name='Trayectoria'
                         ))
                         
-                        # Configuración del diseño 3D
                         fig_3d.update_layout(
-                            title="Superficie y Trayectoria (Interactivo 3D)",
+                            title="Vista 3D: Superficie y Trayectoria",
                             scene=dict(
                                 xaxis_title=f"{vars_names[0]}",
                                 yaxis_title=f"{vars_names[1]}",
@@ -748,15 +748,42 @@ def main_app():
                             ),
                             margin=dict(l=0, r=0, b=0, t=40)
                         )
-                        
-                        # Renderizar el gráfico interactivo en Streamlit
                         st.plotly_chart(fig_3d, use_container_width=True)
-                        
+
+                        # --- Gráfico 2D (Curvas de Nivel y Trayectoria) ---
+                        fig_contour = go.Figure()
+
+                        # Capa 1: Contornos topográficos
+                        fig_contour.add_trace(go.Contour(
+                            x=x_range, y=y_range, z=Z,
+                            colorscale='Viridis',
+                            contours=dict(showlabels=True),
+                            name='Curvas de Nivel',
+                            colorbar=dict(title="C(x,y)")
+                        ))
+
+                        # Capa 2: Trayectoria vista desde arriba
+                        fig_contour.add_trace(go.Scatter(
+                            x=x_hist, y=y_hist,
+                            mode='lines+markers',
+                            marker=dict(size=6, color='red', symbol='circle'),
+                            line=dict(color='red', width=2),
+                            name='Trayectoria'
+                        ))
+
+                        fig_contour.update_layout(
+                            title="Vista Topográfica: Curvas de Nivel",
+                            xaxis_title=f"{vars_names[0]}",
+                            yaxis_title=f"{vars_names[1]}",
+                            margin=dict(l=0, r=0, b=0, t=40)
+                        )
+                        st.plotly_chart(fig_contour, use_container_width=True)
+
                     else:
                         st.info("La gráfica de trayectoria interactiva solo está disponible para 1 o 2 variables.")
 
                 with col_g2:
-                    st.markdown("#### (v) Análisis de Convergencia")
+                    st.markdown("#### Análisis de Convergencia")
                     # Gráfica de la caída del error a medida que avanzan las iteraciones
                     if len(results) > 1:
                         iter_vals = results['Iteración'].values[1:] 
