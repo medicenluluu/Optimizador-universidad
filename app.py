@@ -8,6 +8,7 @@ import sympy as sp              # Para cálculo simbólico (derivadas, gradiente
 import re                       # Para expresiones regulares (limpieza de textos)
 import matplotlib.pyplot as plt # Para la creación de gráficos 2D
 import plotly.graph_objects as go # Para la creación de gráficos 3D interactivos
+from plotly.subplots import make_subplots # Para crear gráficos con múltiples ejes (eje Y secundario)
 
 # =============================================================================
 # 1. CONFIGURACIÓN INICIAL DE LA PÁGINA
@@ -784,22 +785,72 @@ def main_app():
 
                 with col_g2:
                     st.markdown("#### Análisis de Convergencia")
-                    # Gráfica de la caída del error a medida que avanzan las iteraciones
-                    if len(results) > 1:
-                        iter_vals = results['Iteración'].values[1:] 
-                        err_vals = results['Error Rel. (%)'].values[1:]
-                        fig_conv, ax_conv = plt.subplots(figsize=(7, 5))
-                        ax_conv.plot(iter_vals, err_vals, label='Error (%)', color='#10B981', marker='s', linestyle='-')
-                        ax_conv.set_title("Evolución del Error Relativo")
-                        ax_conv.set_xlabel("Iteración (k)")
-                        ax_conv.set_ylabel("Error Relativo (%)")
-                        # Escala logarítmica recomendada para visualizar errores descendientes rápidamente
-                        ax_conv.set_yscale('log')
-                        ax_conv.grid(True, linestyle='--', alpha=0.6)
-                        ax_conv.legend()
-                        st.pyplot(fig_conv, use_container_width=True)
+                    # Nuevo gráfico interactivo de Plotly con doble eje
+                    if len(results) > 0:
+                        iter_vals = results['Iteración'].values
+                        grad_norms = results['||∇C(x)||'].values
+                        f_vals = results['C(x)'].values
+                        
+                        # Crear figura con eje Y secundario
+                        fig_conv = make_subplots(specs=[[{"secondary_y": True}]])
+                        
+                        # Traza 1: Norma del gradiente (Eje Y principal, logarítmico)
+                        fig_conv.add_trace(
+                            go.Scatter(
+                                x=iter_vals, 
+                                y=grad_norms, 
+                                name="||∇f(x_k)||",
+                                mode="lines+markers",
+                                line=dict(color="#2563EB", width=3), # Azul vibrante
+                                marker=dict(size=6)
+                            ),
+                            secondary_y=False,
+                        )
+                        
+                        # Traza 2: Valor de la función (Eje Y secundario, lineal)
+                        fig_conv.add_trace(
+                            go.Scatter(
+                                x=iter_vals, 
+                                y=f_vals, 
+                                name="f(x_k)",
+                                mode="lines+markers",
+                                line=dict(color="#F97316", width=3, dash="dot"), # Naranja punteado
+                                marker=dict(size=6)
+                            ),
+                            secondary_y=True,
+                        )
+                        
+                        # Configuraciones de diseño y layout
+                        fig_conv.update_layout(
+                            title="Convergencia",
+                            xaxis_title="Iteración",
+                            legend=dict(
+                                orientation="h",   # Leyenda horizontal en la parte superior
+                                yanchor="bottom",
+                                y=1.02,
+                                xanchor="right",
+                                x=1
+                            ),
+                            margin=dict(l=0, r=0, b=0, t=60)
+                        )
+                        
+                        # Actualizar Eje Y Principal (Izquierda)
+                        fig_conv.update_yaxes(
+                            title_text="||∇f(x_k)|| (escala log)", 
+                            type="log", 
+                            secondary_y=False
+                        )
+                        
+                        # Actualizar Eje Y Secundario (Derecha)
+                        fig_conv.update_yaxes(
+                            title_text="f(x_k)", 
+                            secondary_y=True
+                        )
+                        
+                        # Insertar la gráfica de Plotly en Streamlit
+                        st.plotly_chart(fig_conv, use_container_width=True)
                     else:
-                        st.info("El algoritmo convergió en el primer intento.")
+                        st.info("El algoritmo no generó iteraciones válidas.")
 
                 # --- TABLA DE RESULTADOS FINALES ---
                 st.markdown("#### Tabla General del Historial de Iteraciones")
