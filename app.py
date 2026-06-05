@@ -4,6 +4,7 @@ import pandas as pd
 import sympy as sp
 import re
 import matplotlib.pyplot as plt
+import plotly.graph_objects as go # Para la creación de gráficos 3D interactivos
 
 # 1. Configuración de página
 st.set_page_config(page_title="Calculadora de Optimización", layout="wide", initial_sidebar_state="expanded")
@@ -785,18 +786,51 @@ def main_app():
                         st.latex(rf"E = \frac{{{num_val:g}}}{{{den_val:g}}}\times100 = {E_val:g}\%")
                         st.latex(rf"\boxed{{E = {E_val:g}\%}}")
                 
-                # --- GRÁFICOS ---
+                Si el usuario presiona "Resolver Problema", esto se vuelve True
+    if execute:
+        st.markdown("### 3. Resultados y Análisis")
+        
+        # Preparación de símbolos y función
+        vars_sym = sp.symbols(' '.join(vars_names))
+        if len(vars_names) == 1: vars_sym = [vars_sym]
+        expr = parse_function(func_input, vars_sym)
+        
+        try:
+            # Limpiar el input del punto inicial (sacar letras u otros caracteres extraños)
+            clean_str = re.sub(r'[^0-9.,-]', '', start_point)
+            x0 = [float(i) for i in clean_str.split(',') if i.strip()]
+            
+            # Validación de integridad de los datos
+            if expr is not None and len(x0) == len(vars_names):
+                
+                # --- LLAMADA A LOS ALGORITMOS MATEMÁTICOS ---
+                if method == "Método del Gradiente":
+                    results, bt_log, grad_exprs = run_gradient_descent(expr, vars_sym, x0, alpha_type, alpha_val, wolfe_params if alpha_type=="Wolfe (Armijo)" else None, int(max_iter), tolerancia, norm_type)
+                elif method == "Método de Newton":
+                    results = run_newton_method(expr, vars_sym, x0, int(max_iter), tolerancia, norm_type)
+                else:
+                    results = run_conjugate_gradient(expr, vars_sym, x0, alpha_type, cg_alpha_val if alpha_type == "Fijo" else cg_alpha_val, int(max_iter), tolerancia, norm_type)
+
+                # =============================================================================
+                # --- BLOQUE: GRÁFICOS MATPLOTLIB Y PLOTLY ---
+                # =============================================================================
                 col_g1, col_g2 = st.columns(2)
+                
                 with col_g1:
                     st.markdown("#### (i) y (iv) Trayectoria en C(x)")
+                    f_lambdified_plot = sp.lambdify(vars_sym, expr, 'numpy')
+                    
+                    # Conservamos el gráfico 2D para 1 variable
                     if len(vars_names) == 1:
-                        f_lambdified_plot = sp.lambdify(vars_sym, expr, 'numpy')
                         x_hist = results[f'{vars_names[0]}'].values
                         f_hist = results['C(x)'].values
+                        
+                        # Definir los márgenes del eje X dinámicamente con base en los puntos evaluados
                         margin = max(1.0, (max(x_hist) - min(x_hist)) * 0.5)
                         x_range = np.linspace(min(x_hist) - margin, max(x_hist) + margin, 500)
                         y_range = [f_lambdified_plot(val) for val in x_range]
                         
+                        # Dibujar la figura de matplotlib
                         fig, ax = plt.subplots(figsize=(7, 5))
                         ax.plot(x_range, y_range, label='C(x)', color='#1E3A8A', linewidth=2)
                         ax.plot(x_hist, f_hist, label='Iteraciones', color='#EF4444', marker='o', linestyle=':', markersize=6)
@@ -805,12 +839,74 @@ def main_app():
                         ax.set_ylabel("C(x)")
                         ax.grid(True, linestyle='--', alpha=0.6)
                         ax.legend()
+                        
+                        # st.pyplot inserta la gráfica de matplotlib dentro de Streamlit
                         st.pyplot(fig, use_container_width=True)
+                        
+                    # Agregamos el gráfico 3D Interactivo para 2 variables
+                    elif len(vars_names) == 2:
+                        x_hist = results[f'{vars_names[0]}'].values
+                        y_hist = results[f'{vars_names[1]}'].values
+                        z_hist = results['C(x)'].values
+                        
+                        # Generar malla (grid) para la superficie
+                        margin_x = max(1.0, (max(x_hist) - min(x_hist)) * 0.5)
+                        margin_y = max(1.0, (max(y_hist) - min(y_hist)) * 0.5)
+                        
+                        x_range = np.linspace(min(x_hist) - margin_x, max(x_hist) + margin_x, 50)
+                        y_range = np.linspace(min(y_hist) - margin_y, max(y_hist) + margin_y, 50)
+                        X, Y = np.meshgrid(x_range, y_range)
+                        
+                        # Evaluar la función en la malla Z
+                        Z = np.zeros_like(X)
+                        for i in range(X.shape[0]):
+                            for j in range(X.shape[1]):
+                                try:
+                                    val = f_lambdified_plot(X[i,j], Y[i,j])
+                                    Z[i,j] = val if not np.isnan(val) and not np.isinf(val) else np.nan
+                                except:
+                                    Z[i,j] = np.nan
+                                    
+                        fig_3d = go.Figure()
+                        
+                        # Capa 1: Superficie de la función
+                        fig_3d.add_trace(go.Surface(
+                            x=X, y=Y, z=Z, 
+                            colorscale='Viridis', 
+                            opacity=0.8, 
+                            name='Superficie',
+                            showscale=False
+                        ))
+                        
+                        # Capa 2: Trayectoria de optimización (puntos y líneas de las iteraciones)
+                        fig_3d.add_trace(go.Scatter3d(
+                            x=x_hist, y=y_hist, z=z_hist,
+                            mode='lines+markers',
+                            marker=dict(size=4, color='red', symbol='circle'),
+                            line=dict(color='red', width=4),
+                            name='Trayectoria'
+                        ))
+                        
+                        # Configuración del diseño 3D
+                        fig_3d.update_layout(
+                            title="Superficie y Trayectoria (Interactivo 3D)",
+                            scene=dict(
+                                xaxis_title=f"{vars_names[0]}",
+                                yaxis_title=f"{vars_names[1]}",
+                                zaxis_title="C(x,y)"
+                            ),
+                            margin=dict(l=0, r=0, b=0, t=40)
+                        )
+                        
+                        # Renderizar el gráfico interactivo en Streamlit
+                        st.plotly_chart(fig_3d, use_container_width=True)
+                        
                     else:
-                        st.info("La gráfica de trayectoria en 2D está disponible solo para funciones de 1 variable.")
+                        st.info("La gráfica de trayectoria interactiva solo está disponible para 1 o 2 variables.")
 
                 with col_g2:
                     st.markdown("#### (v) Análisis de Convergencia")
+                    # Gráfica de la caída del error a medida que avanzan las iteraciones
                     if len(results) > 1:
                         iter_vals = results['Iteración'].values[1:] 
                         err_vals = results['Error Rel. (%)'].values[1:]
@@ -819,15 +915,13 @@ def main_app():
                         ax_conv.set_title("Evolución del Error Relativo")
                         ax_conv.set_xlabel("Iteración (k)")
                         ax_conv.set_ylabel("Error Relativo (%)")
+                        # Escala logarítmica recomendada para visualizar errores descendientes rápidamente
                         ax_conv.set_yscale('log')
                         ax_conv.grid(True, linestyle='--', alpha=0.6)
                         ax_conv.legend()
                         st.pyplot(fig_conv, use_container_width=True)
                     else:
                         st.info("El algoritmo convergió en el primer intento.")
-
-                st.markdown("#### Tabla General del Historial de Iteraciones")
-                st.dataframe(results, use_container_width=True)
                 
             else:
                 st.error("Error: Asegúrate que la cantidad de valores en el punto inicial coincida con las variables.")
