@@ -171,6 +171,18 @@ st.markdown(
     [data-testid="stAlert"] {
         border-radius: 10px !important;
     }
+    
+    /* =========================
+   CUADRO DE DIÁLOGO (POPUP)
+========================= */
+[data-testid="stDialog"] {
+    background-color: #FFFFFF !important;
+}
+
+/* Para asegurar que el contenido interno también tenga fondo blanco */
+[data-testid="stDialog"] div[data-baseweb="modal"] {
+    background-color: #FFFFFF !important;
+}
     </style>
     """,
     unsafe_allow_html=True # Permite que Streamlit renderice este HTML/CSS
