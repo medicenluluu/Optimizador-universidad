@@ -171,6 +171,15 @@ st.markdown(
     [data-testid="stAlert"] {
         border-radius: 10px !important;
     }
+    /* =========================
+       CUADRO DE DIÁLOGO (POPUP) BLANCO
+    ========================= */
+    [data-testid="stDialog"], 
+    div[data-baseweb="modal"], 
+    div[role="dialog"], 
+    .st-emotion-cache-12w0qpk {
+        background-color: #FFFFFF !important;
+    }
     </style>
     """,
     unsafe_allow_html=True # Permite que Streamlit renderice este HTML/CSS
@@ -438,6 +447,9 @@ def run_conjugate_gradient(expr, vars_sym, x0, alpha_type, alpha_val, max_iter, 
 
 @st.dialog("📖 Definición del Método")
 def mostrar_metodo():
+    # Esta línea fuerza el color blanco específicamente cuando se abre el cuadro
+    st.markdown("""<style>div[role="dialog"] { background-color: #FFFFFF !important; }</style>""", unsafe_allow_html=True)
+    
     metodo = st.session_state.metodo_info
     if metodo == "gradiente":
         st.subheader("Método del Gradiente")
