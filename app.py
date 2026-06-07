@@ -149,12 +149,12 @@ st.markdown(
         transition: 0.2s ease !important;
     }
     .stButton > button:hover, [data-testid="stForm"] button:hover, button[kind="primaryFormSubmit"]:hover {
-        background-color: #2563EB !important; /* Mantiene el color azul al pasar el mouse */
-        color: #FFFFFF !important;            /* Mantiene el texto blanco al pasar el mouse */
-        border: none !important;
+        background-color: #FFFFFF !important; /* Al pasar el mouse se pone blanco */
+        color: #2563EB !important; /* El texto se vuelve azul para contrastar */
+        border: 1px solid #2563EB !important;
         transform: translateY(-1px);
     }
-    .stButton > button:hover *, [data-testid="stForm"] button:hover * { color: #FFFFFF !important; }
+    .stButton > button:hover *, [data-testid="stForm"] button:hover * { color: #2563EB !important; }
     /* =========================
        TABLAS
     ========================= */
@@ -177,7 +177,7 @@ st.markdown(
 )
 
 with st.sidebar:
-    st.markdown(f"Usuario: {st.session_state.user_name}")
+    st.markdown(f"**Usuario:** {st.session_state.user_name}")
 
 def parse_function(func_str, vars_list):
     """
@@ -185,7 +185,7 @@ def parse_function(func_str, vars_list):
     objeto matemático manipulable por la librería SymPy.
     """
     try:
-        func_str = func_str.replace('^', '*') # Potencias: x^2 pasa a x*2
+        func_str = func_str.replace('^', '**') # Potencias: x^2 pasa a x**2
         func_str = func_str.replace('ln', 'log') # Logaritmos naturales
         func_str = re.sub(r'e\\\((.*?)\)', r'exp(\1)', func_str)
         func_str = re.sub(r'e\\(.?)(\s|\+|-|\|\/|$)', r'exp(\1)\2', func_str)
@@ -329,10 +329,10 @@ def run_newton_method(expr, vars_sym, x0, max_iter, tol, norm_type):
             try:
                 # Calculamos la matriz Hessiana evaluada en el punto actual
                 hess_val = np.array(hess_lambdified(*curr_x), dtype=float) if len(vars_sym) > 1 else np.array([[hess_lambdified(curr_x[0])]], dtype=float)
-                
+
                 # Verificamos si la matriz es definida positiva a través de sus autovalores
                 eigvals = np.linalg.eigvals(hess_val)
-                
+
                 if np.any(eigvals <= 1e-8):
                     # Si tiene autovalores negativos o cercanos a cero, falla la prueba de positividad
                     hess_inv = np.eye(len(vars_sym))
@@ -341,7 +341,7 @@ def run_newton_method(expr, vars_sym, x0, max_iter, tol, norm_type):
                     # Si es definida positiva, podemos invertirla de manera segura
                     hess_inv = np.linalg.inv(hess_val)
                     accion_str = "Hessiana OK -> Newton Estándar"
-                    
+
             except Exception:
                 # Si ocurre cualquier error algebraico (ej. no invertible), usamos Identidad
                 hess_inv = np.eye(len(vars_sym))
@@ -352,13 +352,13 @@ def run_newton_method(expr, vars_sym, x0, max_iter, tol, norm_type):
 
         # Guardar en el historial
         entry = {
-            'Iteración': k, 
-            'C(x)': f_val, 
-            '||∇C(x)||': np.linalg.norm(grad_val), 
+            'Iteración': k,
+            'C(x)': f_val,
+            '||∇C(x)||': np.linalg.norm(grad_val),
             'Error Rel. (%)': rel_error * 100,
             'Acción para sig. paso': accion_str
         }
-        
+
         for i, val in enumerate(curr_x): entry[f'{vars_sym[i]}'] = val
         for i, val in enumerate(grad_val): entry[f'g_{vars_sym[i]}'] = val
         history.append(entry)
@@ -453,7 +453,7 @@ def mostrar_metodo():
         Utiliza gradiente y Hessiana para aproximar rápidamente el óptimo.
         • Convergencia rápida.
         • Usa derivadas de segundo orden.
-        • Mejora: Si la matriz Hessiana no es definida positiva o no es invertible, la aplicación utilizará automáticamente una Matriz Identidad para proteger el algoritmo.
+        • **Mejora:** Si la matriz Hessiana no es definida positiva o no es invertible, la aplicación utilizará automáticamente una Matriz Identidad para proteger el algoritmo.
         """)
     elif metodo == "conjugado":
         st.subheader("Gradiente Conjugado")
@@ -504,7 +504,7 @@ def main_app():
         vars_input = st.text_input("Variables (separadas por coma)", value="x, y")
         vars_names = [v.strip() for v in vars_input.split(',')]
     with col2:
-        func_input = st.text_input(f"Función C({', '.join(vars_names)})", value="ln(x*2 + y*2) - 2*x*y")
+        func_input = st.text_input(f"Función C({', '.join(vars_names)})", value="ln(x**2 + y**2) - 2*x*y")
     with col3:
         start_point = st.text_input("Punto inicial (x0, y0)", value="-1, 0")
 
@@ -678,7 +678,7 @@ def main_app():
                                 y=grad_norms,
                                 name="||∇f(x_k)||",
                                 mode="lines+markers",
-                                line=dict(color="#2563EB", width=3),
+                                line=dict(color="#2563EB", width=3), # Azul vibrante
                                 marker=dict(size=6)
                             ),
                             secondary_y=False,
@@ -689,7 +689,7 @@ def main_app():
                                 y=f_vals,
                                 name="f(x_k)",
                                 mode="lines+markers",
-                                line=dict(color="#F97316", width=3, dash="dot"),
+                                line=dict(color="#F97316", width=3, dash="dot"), # Naranja punteado
                                 marker=dict(size=6)
                             ),
                             secondary_y=True,
@@ -699,23 +699,3 @@ def main_app():
                             title="Convergencia",
                             xaxis_title="Iteración",
                             legend=dict(
-                                orientation="h",
-                                yanchor="bottom",
-                                y=1.02,
-                                xanchor="right",
-                                x=1
-                            ),
-                            margin=dict(l=0, r=0, b=0, t=60)
-                        )
-                        fig_conv.update_yaxes(
-                            title_text="||∇f(x_k)|| (escala log)",
-                            type="log",
-                            secondary_y=False
-                        )
-                        # Nota: El resto del código que faltaba de la sección main_app() se asume para completar el flujo normal de ejecución si fuera necesario.
-        except Exception as e:
-            st.error(f"Error en la ejecución: {e}")
-
-if _name_ == "_main_":
-    if st.session_state.user_name:
-        main_app()
