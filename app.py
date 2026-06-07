@@ -491,9 +491,22 @@ def run_conjugate_gradient(expr, vars_sym, x0, alpha_type, alpha_val, max_iter, 
             denom = np.dot(grad_val, grad_val)
 
             if denom < 1e-12:
-                beta = 0.0
+                beta_fr = 0.0
             else:
-                beta = np.dot(grad_next_val, grad_next_val) / denom
+                beta_fr = np.dot(grad_next_val, grad_next_val) / denom
+
+            fr_exploto = False
+            if beta_fr > 10:
+                fr_exploto = True
+
+            if fr_exploto:
+                yk = grad_next_val - grad_val
+                beta_pr = np.dot(grad_next_val, yk) / denom
+                beta = max(0.0, beta_pr)
+                p_next = -grad_next_val + beta * p
+            else:
+                beta = beta_fr
+                p_next = -grad_next_val + beta * p
 
             # --- Modo Examen (Gradiente Conjugado) ---
             if k < 3:
@@ -505,10 +518,26 @@ def run_conjugate_gradient(expr, vars_sym, x0, alpha_type, alpha_val, max_iter, 
                 step_info += f"- **Nuevo punto ($x_{k+1} = x_k + \\alpha_k p_k$):** ${format_latex_array(next_x)}$\n"
                 step_info += f"- **Nuevo Gradiente $\\nabla C(x_{k+1})$:** ${format_latex_array(grad_next_val)}$\n"
                 step_info += f"- **Factor de conjugación ($\\beta_k$):** `{beta:.4f}`\n"
+
+                if fr_exploto:
+                    step_info += "\n\n"
+                    step_info += "⚠️ **Observación Académica**\n\n"
+                    step_info += (
+                        "No es recomendable continuar utilizando Fletcher-Reeves en esta iteración. "
+                        "El factor de conjugación β obtuvo un valor excesivamente grande, provocando "
+                        "una dirección conjugada muy agresiva y potencialmente inestable. "
+                        "Esto puede generar saltos excesivos, pérdida de convergencia o trayectorias "
+                        "que dejan de aproximarse al óptimo.\n\n"
+                        "Por esta razón, el algoritmo cambia automáticamente a "
+                        "**Polak-Ribiere**, el cual utiliza la diferencia entre gradientes "
+                        "consecutivos y suele ser más robusto en funciones no cuadráticas.\n\n"
+                        f"**β (Fletcher-Reeves original) = {beta_fr:.4f}**"
+                    )
+
                 exam_log.append(step_info)
             # -----------------------------------------
 
-            p = -grad_next_val + beta * p
+            p = p_next
             curr_x = next_x
 
     return pd.DataFrame(history), exam_log
