@@ -329,10 +329,10 @@ def run_newton_method(expr, vars_sym, x0, max_iter, tol, norm_type):
             try:
                 # Calculamos la matriz Hessiana evaluada en el punto actual
                 hess_val = np.array(hess_lambdified(*curr_x), dtype=float) if len(vars_sym) > 1 else np.array([[hess_lambdified(curr_x[0])]], dtype=float)
-
+                
                 # Verificamos si la matriz es definida positiva a través de sus autovalores
                 eigvals = np.linalg.eigvals(hess_val)
-
+                
                 if np.any(eigvals <= 1e-8):
                     # Si tiene autovalores negativos o cercanos a cero, falla la prueba de positividad
                     hess_inv = np.eye(len(vars_sym))
@@ -341,7 +341,7 @@ def run_newton_method(expr, vars_sym, x0, max_iter, tol, norm_type):
                     # Si es definida positiva, podemos invertirla de manera segura
                     hess_inv = np.linalg.inv(hess_val)
                     accion_str = "Hessiana OK -> Newton Estándar"
-
+                    
             except Exception:
                 # Si ocurre cualquier error algebraico (ej. no invertible), usamos Identidad
                 hess_inv = np.eye(len(vars_sym))
@@ -352,13 +352,13 @@ def run_newton_method(expr, vars_sym, x0, max_iter, tol, norm_type):
 
         # Guardar en el historial
         entry = {
-            'Iteración': k,
-            'C(x)': f_val,
-            '||∇C(x)||': np.linalg.norm(grad_val),
+            'Iteración': k, 
+            'C(x)': f_val, 
+            '||∇C(x)||': np.linalg.norm(grad_val), 
             'Error Rel. (%)': rel_error * 100,
             'Acción para sig. paso': accion_str
         }
-
+        
         for i, val in enumerate(curr_x): entry[f'{vars_sym[i]}'] = val
         for i, val in enumerate(grad_val): entry[f'g_{vars_sym[i]}'] = val
         history.append(entry)
@@ -699,3 +699,34 @@ def main_app():
                             title="Convergencia",
                             xaxis_title="Iteración",
                             legend=dict(
+                                orientation="h",   # Leyenda horizontal en la parte superior
+                                yanchor="bottom",
+                                y=1.02,
+                                xanchor="right",
+                                x=1
+                            ),
+                            margin=dict(l=0, r=0, b=0, t=60)
+                        )
+                        fig_conv.update_yaxes(
+                            title_text="||∇f(x_k)|| (escala log)",
+                            type="log",
+                            secondary_y=False
+                        )
+                        fig_conv.update_yaxes(
+                            title_text="f(x_k)",
+                            secondary_y=True
+                        )
+                        st.plotly_chart(fig_conv, use_container_width=True)
+                    else:
+                        st.info("El algoritmo no generó iteraciones válidas.")
+
+                st.markdown("#### Tabla General del Historial de Iteraciones")
+                st.dataframe(results, use_container_width=True)
+
+            else:
+                st.error("Error: Asegúrate que la cantidad de valores en el punto inicial coincida con las variables.")
+        except Exception as e:
+            st.error(f"Se encontró un error matemático/sintáctico: {e}")
+
+if __name__ == "__main__":
+    main_app()
