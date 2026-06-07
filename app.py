@@ -127,10 +127,7 @@ st.markdown(
         color: #000000 !important; 
     }
     
-    /* Flecha del menú desplegable */
-    [data-baseweb="select"] svg { 
-        fill: #000000 !important; 
-    }
+    [data-baseweb="select"] svg { fill: #000000 !important; }
 
     /* =========================
        BOTONES DE SUMAR/RESTAR (+/-)
@@ -147,10 +144,9 @@ st.markdown(
     [data-testid="stNumberInputStepUp"] svg,
     [data-testid="stNumberInputStepDown"] svg,
     div[data-baseweb="input"] button svg {
-        fill: currentColor !important; /* Para que el ícono tome el color de la letra */
+        fill: currentColor !important;
     }
 
-    /* Efecto al pasar el mouse o hacer clic en + / - */
     [data-testid="stNumberInputStepUp"]:hover,
     [data-testid="stNumberInputStepDown"]:hover,
     [data-testid="stNumberInputStepUp"]:active,
@@ -171,7 +167,6 @@ st.markdown(
         color: #000000 !important;
     }
     
-    /* Efecto al pasar el mouse por las opciones de la lista */
     li[role="option"]:hover, li[role="option"]:hover *,
     div[data-baseweb="popover"] li:hover, div[data-baseweb="popover"] li:hover * {
         background-color: #000000 !important;
@@ -193,7 +188,6 @@ st.markdown(
         transition: 0.2s ease !important;
     }
     
-    /* Efecto hover en botones principales */
     .stButton > button:hover, [data-testid="stForm"] button:hover, button[kind="primaryFormSubmit"]:hover,
     .stButton > button:active {
         background-color: #000000 !important; 
@@ -201,12 +195,10 @@ st.markdown(
         border: 1px solid #000000 !important;
         transform: translateY(-1px);
     }
-    .stButton > button:hover *, [data-testid="stForm"] button:hover * { 
-        color: #FFFFFF !important; 
-    }
+    .stButton > button:hover *, [data-testid="stForm"] button:hover * { color: #FFFFFF !important; }
 
     /* =========================
-       TABLAS
+       TABLAS Y ALERTAS
     ========================= */
     [data-testid="stDataFrame"] {
         background-color: #FFFFFF !important;
@@ -215,75 +207,81 @@ st.markdown(
         padding: 10px !important;
         box-shadow: none !important;
     }
+    [data-testid="stAlert"] { border-radius: 10px !important; }
+    
     /* =========================
-       MÉTRICAS / ALERTAS
+       EXAM MODE BOX
     ========================= */
-    [data-testid="stAlert"] {
-        border-radius: 10px !important;
+    .exam-box {
+        background-color: #FDFBEE;
+        border-left: 5px solid #F59E0B;
+        padding: 15px;
+        margin-bottom: 20px;
+        border-radius: 0px 8px 8px 0px;
     }
-    /* =========================
-       CUADRO DE DIÁLOGO (POPUP) BLANCO
-    ========================= */
-    [data-testid="stDialog"], 
-    div[data-baseweb="modal"], 
-    div[role="dialog"], 
-    .st-emotion-cache-12w0qpk {
+    
+    /* CUADRO DE DIÁLOGO (POPUP) BLANCO */
+    [data-testid="stDialog"], div[data-baseweb="modal"], div[role="dialog"], .st-emotion-cache-12w0qpk {
         background-color: #FFFFFF !important;
     }
     </style>
     """,
-    unsafe_allow_html=True # Permite que Streamlit renderice este HTML/CSS
+    unsafe_allow_html=True
 )
 
 with st.sidebar:
     st.markdown(f"**Usuario:** {st.session_state.user_name}")
 
+# --- Funciones Auxiliares de Formato Matemático para Modo Examen ---
+def format_latex_array(arr):
+    """Convierte un arreglo de numpy a un string formato array para LaTeX/Markdown."""
+    if np.isscalar(arr):
+        return f"{arr:.4f}"
+    formatted = [f"{x:.4f}" for x in arr]
+    return "[" + ", ".join(formatted) + "]^T"
+
+def format_matrix_latex(mat):
+    """Convierte una matriz 2D a código LaTeX de una matriz para mostrar de forma académica."""
+    if np.isscalar(mat) or mat.ndim == 1:
+        return format_latex_array(mat)
+    res = r"\begin{bmatrix} "
+    for row in mat:
+        res += " & ".join([f"{x:.4f}" for x in row]) + r" \\ "
+    res += r"\end{bmatrix}"
+    return res
+# -------------------------------------------------------------------
+
 def parse_function(func_str, vars_list):
-    """
-    Toma la función escrita por el usuario (string) y la convierte en un
-    objeto matemático manipulable por la librería SymPy.
-    """
     try:
-        func_str = func_str.replace('^', '**') # Potencias: x^2 pasa a x**2
-        func_str = func_str.replace('ln', 'log') # Logaritmos naturales
+        func_str = func_str.replace('^', '**')
+        func_str = func_str.replace('ln', 'log')
         func_str = re.sub(r'e\\\((.*?)\)', r'exp(\1)', func_str)
         func_str = re.sub(r'e\\(.?)(\s|\+|-|\|\/|$)', r'exp(\1)\2', func_str)
         func_str = re.sub(r'(\d)([a-zA-Z])', r'\1*\2', func_str)
         expr = sp.sympify(func_str)
         return expr
     except Exception:
-        return None # Si hay un error de sintaxis, retorna None
+        return None
 
 def compute_gradient(expr, variables):
-    """ Calcula el gradiente (vector de derivadas parciales) de la función. """
     return [sp.diff(expr, var) for var in variables]
 
 def compute_hessian(expr, variables):
-    """ Calcula la matriz Hessiana (matriz de segundas derivadas parciales). """
     return sp.hessian(expr, variables)
 
 def calcular_error(curr_x, prev_x, norm_type):
-    """
-    Calcula el error relativo entre la iteración actual (curr_x) y la anterior (prev_x).
-    Permite elegir el tipo de norma matemática para medir esta "distancia".
-    """
     if norm_type == "L_infinito (Máximo)":
         num = np.linalg.norm(curr_x - prev_x, ord=np.inf)
         den = np.linalg.norm(curr_x, ord=np.inf)
     elif norm_type == "L1 (Manhattan)":
         num = np.linalg.norm(curr_x - prev_x, ord=1)
         den = np.linalg.norm(curr_x, ord=1)
-    else: # Norma Euclidiana por defecto (L2)
+    else:
         num = np.linalg.norm(curr_x - prev_x)
         den = np.linalg.norm(curr_x)
     return num / (den if den != 0 else 1e-8)
 
 def evaluate_func_safe(f_lambdified, x, vars_sym):
-    """
-    Evalúa matemáticamente un punto "x" en la función.
-    Si el resultado da error (ej. logaritmo de un negativo) o infinito, retorna un valor altísimo (1e9)
-    para penalizar ese punto y que el algoritmo no colapse.
-    """
     try:
         val = f_lambdified(*x) if len(vars_sym) > 1 else f_lambdified(x[0])
         if np.isnan(val) or np.isinf(val):
@@ -293,18 +291,15 @@ def evaluate_func_safe(f_lambdified, x, vars_sym):
         return 1e9
 
 def run_gradient_descent(expr, vars_sym, x0, alpha_type, alpha_val, wolfe_params, max_iter, tol, norm_type):
-    """
-    MÉTODO DEL GRADIENTE (Descenso más pronunciado).
-    Se mueve iterativamente en la dirección opuesta al gradiente para buscar un mínimo.
-    """
-    history = []      # Guarda la tabla de iteraciones
-    backtrack_log = [] # Guarda los intentos fallidos en la búsqueda de Armijo
+    history = []
+    backtrack_log = []
+    exam_log = [] # Registro para Modo Examen
 
     f_lambdified = sp.lambdify(vars_sym, expr, 'numpy')
     grad_exprs = compute_gradient(expr, vars_sym)
     grad_lambdified = [sp.lambdify(vars_sym, g, 'numpy') for g in grad_exprs]
 
-    curr_x = np.array(x0, dtype=float) # Punto inicial
+    curr_x = np.array(x0, dtype=float)
 
     for k in range(max_iter + 1):
         f_val = evaluate_func_safe(f_lambdified, curr_x, vars_sym)
@@ -324,7 +319,7 @@ def run_gradient_descent(expr, vars_sym, x0, alpha_type, alpha_val, wolfe_params
             break
 
         if k < max_iter:
-            direction = -grad_val # La dirección de descenso es el gradiente negativo
+            direction = -grad_val
             alpha = alpha_val
 
             if alpha_type == "Wolfe (Armijo)":
@@ -335,7 +330,6 @@ def run_gradient_descent(expr, vars_sym, x0, alpha_type, alpha_val, wolfe_params
                 for intento in range(50):
                     new_x = curr_x + alpha * direction
                     f_new = evaluate_func_safe(f_lambdified, new_x, vars_sym)
-
                     limite_armijo = f_val + c1 * alpha * np.dot(grad_val, direction)
                     armijo_cumple = f_new <= limite_armijo
 
@@ -346,22 +340,29 @@ def run_gradient_descent(expr, vars_sym, x0, alpha_type, alpha_val, wolfe_params
                         })
 
                     if not armijo_cumple:
-                        alpha *= rho # Reduce alpha multiplicándolo por rho (ej. a la mitad)
+                        alpha *= rho
                     else:
-                        break # Si cumple, salimos del bucle de intentos
+                        break
+            
+            # --- Modo Examen (Gradiente) ---
+            if k < 3:
+                step_info = f"**Iteración k = {k}**\n\n"
+                step_info += f"- **Punto actual ($x_{k}$):** ${format_latex_array(curr_x)}$\n"
+                step_info += f"- **Evaluación del Gradiente $\\nabla C(x_{k})$:** ${format_latex_array(grad_val)}$\n"
+                step_info += f"- **Dirección de descenso ($d_{k} = -\\nabla C$):** ${format_latex_array(direction)}$\n"
+                step_info += f"- **Tamaño de paso ($\\alpha_k$):** `{alpha:.4f}`\n"
+                step_info += f"- **Actualización:** $x_{k+1} = x_{k} + \\alpha_k d_{k} = {format_latex_array(curr_x + alpha * direction)}$\n"
+                exam_log.append(step_info)
+            # -------------------------------
 
             curr_x = curr_x - alpha * grad_val
 
-    return pd.DataFrame(history), pd.DataFrame(backtrack_log), grad_exprs
+    return pd.DataFrame(history), pd.DataFrame(backtrack_log), grad_exprs, exam_log
 
 def run_newton_method(expr, vars_sym, x0, max_iter, tol, norm_type):
-    """
-    MÉTODO DE NEWTON.
-    Utiliza información de segunda derivada (Hessiana) para hacer pasos mucho más precisos.
-    Protección: Si la Hessiana no es definida positiva (sus autovalores no son todos positivos)
-    o no es invertible, se reemplaza por la matriz Identidad para evitar direcciones de ascenso o errores.
-    """
     history = []
+    exam_log = [] # Registro para Modo Examen
+    
     f_lambdified = sp.lambdify(vars_sym, expr, 'numpy')
     grad_exprs = compute_gradient(expr, vars_sym)
     hess_expr = compute_hessian(expr, variables=vars_sym)
@@ -380,36 +381,30 @@ def run_newton_method(expr, vars_sym, x0, max_iter, tol, norm_type):
             prev_x = np.array([history[-1][f'{v}'] for v in vars_sym])
             rel_error = calcular_error(curr_x, prev_x, norm_type)
 
-        # Determinar qué acción tomará para la próxima iteración
         accion_str = ""
         hess_inv = None
+        hess_val = None
 
         if k < max_iter:
             try:
-                # Calculamos la matriz Hessiana evaluada en el punto actual
                 hess_val = np.array(hess_lambdified(*curr_x), dtype=float) if len(vars_sym) > 1 else np.array([[hess_lambdified(curr_x[0])]], dtype=float)
-                
-                # Verificamos si la matriz es definida positiva a través de sus autovalores
                 eigvals = np.linalg.eigvals(hess_val)
                 
                 if np.any(eigvals <= 1e-8):
-                    # Si tiene autovalores negativos o cercanos a cero, falla la prueba de positividad
                     hess_inv = np.eye(len(vars_sym))
                     accion_str = "Falla matriz positiva -> Uso Matriz Identidad"
                 else:
-                    # Si es definida positiva, podemos invertirla de manera segura
                     hess_inv = np.linalg.inv(hess_val)
                     accion_str = "Hessiana OK -> Newton Estándar"
                     
             except Exception:
-                # Si ocurre cualquier error algebraico (ej. no invertible), usamos Identidad
                 hess_inv = np.eye(len(vars_sym))
                 accion_str = "Error al invertir -> Uso Matriz Identidad"
+                hess_val = np.eye(len(vars_sym)) # Fallback visual
 
         if k > 0 and rel_error < tol:
             accion_str = "Óptimo alcanzado"
 
-        # Guardar en el historial
         entry = {
             'Iteración': k, 
             'C(x)': f_val, 
@@ -425,26 +420,36 @@ def run_newton_method(expr, vars_sym, x0, max_iter, tol, norm_type):
         if k > 0 and rel_error < tol:
             break
 
-        # Dar el paso si no hemos terminado
         if k < max_iter and hess_inv is not None:
+            # --- Modo Examen (Newton) ---
+            if k < 3:
+                step_info = f"**Iteración k = {k}**\n\n"
+                step_info += f"- **Punto actual ($x_{k}$):** ${format_latex_array(curr_x)}$\n"
+                step_info += f"- **Evaluación del Gradiente $\\nabla C(x_{k})$:** ${format_latex_array(grad_val)}$\n"
+                step_info += f"- **Matriz Hessiana $H(x_{k})$:**\n $${format_matrix_latex(hess_val)}$$\n"
+                step_info += f"- **Inversa de la Hessiana $H(x_{k})^{{-1}}$:** *(Nota: {accion_str})*\n $${format_matrix_latex(hess_inv)}$$\n"
+                
+                d_k = -hess_inv.dot(grad_val)
+                step_info += f"- **Paso de Newton ($d_{k} = -H^{{-1}}\\nabla C$):** ${format_latex_array(d_k)}$\n"
+                step_info += f"- **Actualización:** $x_{k+1} = x_{k} + d_{k} = {format_latex_array(curr_x + d_k)}$\n"
+                exam_log.append(step_info)
+            # -----------------------------
+
             curr_x = curr_x - hess_inv.dot(grad_val)
 
-    return pd.DataFrame(history)
+    return pd.DataFrame(history), exam_log
 
 def run_conjugate_gradient(expr, vars_sym, x0, alpha_type, alpha_val, max_iter, tol, norm_type):
-    """
-    MÉTODO DEL GRADIENTE CONJUGADO.
-    En lugar de ir siempre por el gradiente directo, crea direcciones "conjugadas" que evitan
-    deshacer el trabajo de las iteraciones anteriores (como pasa en el zigzag del gradiente normal).
-    """
     history = []
+    exam_log = [] # Registro para Modo Examen
+    
     f_lambdified = sp.lambdify(vars_sym, expr, 'numpy')
     grad_exprs = compute_gradient(expr, vars_sym)
     grad_lambdified = [sp.lambdify(vars_sym, g, 'numpy') for g in grad_exprs]
 
     curr_x = np.array(x0, dtype=float)
     grad_val = np.array([g(*curr_x) for g in grad_lambdified]) if len(vars_sym) > 1 else np.array([grad_lambdified[0](curr_x[0])])
-    p = -grad_val.copy() # Dirección inicial 'p' es el gradiente negativo
+    p = -grad_val.copy()
 
     for k in range(max_iter + 1):
         f_val = evaluate_func_safe(f_lambdified, curr_x, vars_sym)
@@ -490,14 +495,26 @@ def run_conjugate_gradient(expr, vars_sym, x0, alpha_type, alpha_val, max_iter, 
             else:
                 beta = np.dot(grad_next_val, grad_next_val) / denom
 
+            # --- Modo Examen (Gradiente Conjugado) ---
+            if k < 3:
+                step_info = f"**Iteración k = {k}**\n\n"
+                step_info += f"- **Punto actual ($x_{k}$):** ${format_latex_array(curr_x)}$\n"
+                step_info += f"- **Gradiente $\\nabla C(x_{k})$:** ${format_latex_array(grad_val)}$\n"
+                step_info += f"- **Dirección conjugada ($p_{k}$):** ${format_latex_array(p)}$\n"
+                step_info += f"- **Tamaño de paso ($\\alpha_k$):** `{alpha:.4f}`\n"
+                step_info += f"- **Nuevo punto ($x_{k+1} = x_k + \\alpha_k p_k$):** ${format_latex_array(next_x)}$\n"
+                step_info += f"- **Nuevo Gradiente $\\nabla C(x_{k+1})$:** ${format_latex_array(grad_next_val)}$\n"
+                step_info += f"- **Factor de conjugación ($\\beta_k$):** `{beta:.4f}`\n"
+                exam_log.append(step_info)
+            # -----------------------------------------
+
             p = -grad_next_val + beta * p
             curr_x = next_x
 
-    return pd.DataFrame(history)
+    return pd.DataFrame(history), exam_log
 
 @st.dialog("📖 Definición del Método")
 def mostrar_metodo():
-    # Esta línea fuerza el color blanco específicamente cuando se abre el cuadro
     st.markdown("""<style>div[role="dialog"] { background-color: #FFFFFF !important; }</style>""", unsafe_allow_html=True)
     
     metodo = st.session_state.metodo_info
@@ -530,16 +547,12 @@ def mostrar_metodo():
         st.rerun()
 
 def main_app():
-    """
-    Función principal que renderiza el núcleo de la aplicación:
-    formularios, configuraciones, ejecución y visualización de resultados.
-    """
     with st.sidebar:
         st.markdown("## 💡 Diccionario")
         st.markdown("### de Métodos")
         if st.button("📉 Método del Gradiente"):
             st.session_state.metodo_info = "gradiente"
-            mostrar_metodo() # Se invoca explícitamente para abrir el dialog (en Streamlit 1.35+)
+            mostrar_metodo()
         if st.button("🚀 Método de Newton"):
             st.session_state.metodo_info = "newton"
             mostrar_metodo()
@@ -553,12 +566,12 @@ def main_app():
         <ol>
             <li><strong>Variables Flexibles:</strong> Escribe <code>x, y</code> o <code>x1, x2</code> dependiendo de tu problema.</li>
             <li><strong>Manejo de logaritmos:</strong> Usa <code>ln()</code> o <code>log()</code> sin problema.</li>
-            <li><strong>Reporte Detallado:</strong> Selecciona Método del Gradiente + Armijo para ver el paso a paso exacto como en los exámenes universitarios.</li>
+            <li><strong>Activa el "Modo Examen"</strong> para ver la traza paso a paso (ideal para aprender).</li>
         </ol>
     </div>
     """, unsafe_allow_html=True)
 
-    st.title(" Calculadora de Optimización Académica")
+    st.title("🎓 Calculadora de Optimización Académica")
 
     st.markdown("### 1. Definición del Problema")
     col1, col2, col3 = st.columns([1, 2, 1])
@@ -594,21 +607,21 @@ def main_app():
             else:
                 alpha_val = 0.0
                 wolfe_params = {}
-                w_c1, w_c2 = st.columns(2) # Sub-columnas para los parámetros avanzados de Wolfe
+                w_c1, w_c2 = st.columns(2)
                 with w_c1:
                     wolfe_params['alpha_init'] = st.number_input("Alfa inicial (α_0):", value=0.5, format="%.4f")
                     wolfe_params['rho'] = st.number_input("Rho (ρ - reducción):", value=0.5, format="%.4f")
                 with w_c2:
                     wolfe_params['c1'] = st.number_input("Beta (β - Armijo):", value=0.25, format="%.4f")
-                    wolfe_sigma = st.number_input("Sigma (σ - Curvatura):", value=0.5, format="%.4f", help="Para la 2da condición de Wolfe")
+                    wolfe_sigma = st.number_input("Sigma (σ - Curvatura):", value=0.5, format="%.4f")
 
     with col_m3:
         tolerancia = st.number_input("Tolerancia", value=0.001, format="%.4f")
         norm_type = st.selectbox("Norma para Error Relativo:", ["L_infinito (Máximo)", "L2 (Euclidiana)", "L1 (Manhattan)"])
-        if method == "Método del Gradiente":
-            show_exam_mode = st.checkbox("🔍 Mostrar Detalles en Modo Examen", value=True)
+        # El Checkbox de Modo Examen ahora es global para todos los métodos
+        show_exam_mode = st.checkbox("📝 Mostrar Detalles en Modo Examen", value=True)
 
-    st.markdown("<br>", unsafe_allow_html=True) # Espacio en blanco HTML
+    st.markdown("<br>", unsafe_allow_html=True)
     col_btn1, col_btn2, col_btn3 = st.columns([1, 1, 1])
     with col_btn2:
         execute = st.button("▶️ Resolver Problema")
@@ -625,12 +638,27 @@ def main_app():
             x0 = [float(i) for i in clean_str.split(',') if i.strip()]
 
             if expr is not None and len(x0) == len(vars_names):
+                
+                exam_log = [] # Recibirá la bitácora paso a paso
+                
                 if method == "Método del Gradiente":
-                    results, bt_log, grad_exprs = run_gradient_descent(expr, vars_sym, x0, alpha_type, alpha_val, wolfe_params if alpha_type=="Wolfe (Armijo)" else None, int(max_iter), tolerancia, norm_type)
+                    results, bt_log, grad_exprs, exam_log = run_gradient_descent(expr, vars_sym, x0, alpha_type, alpha_val, wolfe_params if alpha_type=="Wolfe (Armijo)" else None, int(max_iter), tolerancia, norm_type)
                 elif method == "Método de Newton":
-                    results = run_newton_method(expr, vars_sym, x0, int(max_iter), tolerancia, norm_type)
+                    results, exam_log = run_newton_method(expr, vars_sym, x0, int(max_iter), tolerancia, norm_type)
                 else:
-                    results = run_conjugate_gradient(expr, vars_sym, x0, alpha_type, cg_alpha_val if alpha_type == "Fijo" else cg_alpha_val, int(max_iter), tolerancia, norm_type)
+                    results, exam_log = run_conjugate_gradient(expr, vars_sym, x0, alpha_type, cg_alpha_val if alpha_type == "Fijo" else cg_alpha_val, int(max_iter), tolerancia, norm_type)
+
+                # --- RENDERIZADO DEL MODO EXAMEN ---
+                if show_exam_mode and exam_log:
+                    st.markdown("#### 📝 Apuntes del Profesor: Procedimiento a Mano")
+                    st.info(f"Mostrando los cálculos detallados para las primeras {len(exam_log)} iteraciones utilizando el **{method}**.")
+                    
+                    cols_exam = st.columns(len(exam_log))
+                    for idx, step_txt in enumerate(exam_log):
+                        with cols_exam[idx]:
+                            st.markdown(f'<div class="exam-box">{step_txt}</div>', unsafe_allow_html=True)
+                    st.divider()
+                # -----------------------------------
 
                 col_g1, col_g2 = st.columns(2)
 
@@ -675,52 +703,15 @@ def main_app():
                                     Z[i,j] = np.nan
 
                         fig_3d = go.Figure()
-                        fig_3d.add_trace(go.Surface(
-                            x=X, y=Y, z=Z,
-                            colorscale='Viridis',
-                            opacity=0.8,
-                            name='Superficie',
-                            showscale=False
-                        ))
-                        fig_3d.add_trace(go.Scatter3d(
-                            x=x_hist, y=y_hist, z=z_hist,
-                            mode='lines+markers',
-                            marker=dict(size=4, color='red', symbol='circle'),
-                            line=dict(color='red', width=4),
-                            name='Trayectoria'
-                        ))
-                        fig_3d.update_layout(
-                            title="Vista 3D: Superficie y Trayectoria",
-                            scene=dict(
-                                xaxis_title=f"{vars_names[0]}",
-                                yaxis_title=f"{vars_names[1]}",
-                                zaxis_title="C(x,y)"
-                            ),
-                            margin=dict(l=0, r=0, b=0, t=40)
-                        )
+                        fig_3d.add_trace(go.Surface(x=X, y=Y, z=Z, colorscale='Viridis', opacity=0.8, name='Superficie', showscale=False))
+                        fig_3d.add_trace(go.Scatter3d(x=x_hist, y=y_hist, z=z_hist, mode='lines+markers', marker=dict(size=4, color='red', symbol='circle'), line=dict(color='red', width=4), name='Trayectoria'))
+                        fig_3d.update_layout(title="Vista 3D: Superficie y Trayectoria", scene=dict(xaxis_title=f"{vars_names[0]}", yaxis_title=f"{vars_names[1]}", zaxis_title="C(x,y)"), margin=dict(l=0, r=0, b=0, t=40))
                         st.plotly_chart(fig_3d, use_container_width=True)
 
                         fig_contour = go.Figure()
-                        fig_contour.add_trace(go.Contour(
-                            x=x_range, y=y_range, z=Z,
-                            colorscale='Viridis',
-                            contours=dict(showlabels=True),
-                            name='Curvas de Nivel',
-                            colorbar=dict(title="C(x,y)")
-                        ))
-                        fig_contour.add_trace(go.Scatter(
-                            x=x_hist, y=y_hist,
-                            mode='lines+markers',
-                            marker=dict(size=6, color='red', symbol='circle'),
-                            line=dict(color='red', width=2),
-                            name='Trayectoria'
-                        ))
-                        fig_contour.update_layout(
-                            title="Vista Topográfica: Curvas de Nivel",
-                            xaxis_title=f"{vars_names[0]}",
-                            yaxis_title=f"{vars_names[1]}",
-                            margin=dict(l=0, r=0, b=0, t=40)
-                        )
+                        fig_contour.add_trace(go.Contour(x=x_range, y=y_range, z=Z, colorscale='Viridis', contours=dict(showlabels=True), name='Curvas de Nivel', colorbar=dict(title="C(x,y)")))
+                        fig_contour.add_trace(go.Scatter(x=x_hist, y=y_hist, mode='lines+markers', marker=dict(size=6, color='red', symbol='circle'), line=dict(color='red', width=2), name='Trayectoria'))
+                        fig_contour.update_layout(title="Vista Topográfica: Curvas de Nivel", xaxis_title=f"{vars_names[0]}", yaxis_title=f"{vars_names[1]}", margin=dict(l=0, r=0, b=0, t=40))
                         st.plotly_chart(fig_contour, use_container_width=True)
 
                     else:
@@ -735,49 +726,17 @@ def main_app():
 
                         fig_conv = make_subplots(specs=[[{"secondary_y": True}]])
                         fig_conv.add_trace(
-                            go.Scatter(
-                                x=iter_vals,
-                                y=grad_norms,
-                                name="||∇f(x_k)||",
-                                mode="lines+markers",
-                                line=dict(color="#2563EB", width=3), # Azul vibrante
-                                marker=dict(size=6)
-                            ),
+                            go.Scatter(x=iter_vals, y=grad_norms, name="||∇f(x_k)||", mode="lines+markers", line=dict(color="#2563EB", width=3), marker=dict(size=6)),
                             secondary_y=False,
                         )
                         fig_conv.add_trace(
-                            go.Scatter(
-                                x=iter_vals,
-                                y=f_vals,
-                                name="f(x_k)",
-                                mode="lines+markers",
-                                line=dict(color="#F97316", width=3, dash="dot"), # Naranja punteado
-                                marker=dict(size=6)
-                            ),
+                            go.Scatter(x=iter_vals, y=f_vals, name="f(x_k)", mode="lines+markers", line=dict(color="#F97316", width=3, dash="dot"), marker=dict(size=6)),
                             secondary_y=True,
                         )
 
-                        fig_conv.update_layout(
-                            title="Convergencia",
-                            xaxis_title="Iteración",
-                            legend=dict(
-                                orientation="h",   # Leyenda horizontal en la parte superior
-                                yanchor="bottom",
-                                y=1.02,
-                                xanchor="right",
-                                x=1
-                            ),
-                            margin=dict(l=0, r=0, b=0, t=60)
-                        )
-                        fig_conv.update_yaxes(
-                            title_text="||∇f(x_k)|| (escala log)",
-                            type="log",
-                            secondary_y=False
-                        )
-                        fig_conv.update_yaxes(
-                            title_text="f(x_k)",
-                            secondary_y=True
-                        )
+                        fig_conv.update_layout(title="Convergencia", xaxis_title="Iteración", legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1), margin=dict(l=0, r=0, b=0, t=60))
+                        fig_conv.update_yaxes(title_text="||∇f(x_k)|| (escala log)", type="log", secondary_y=False)
+                        fig_conv.update_yaxes(title_text="f(x_k)", secondary_y=True)
                         st.plotly_chart(fig_conv, use_container_width=True)
                     else:
                         st.info("El algoritmo no generó iteraciones válidas.")
