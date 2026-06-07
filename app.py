@@ -600,7 +600,7 @@ def main_app():
     </div>
     """, unsafe_allow_html=True)
 
-    st.title("🎓 Calculadora de Optimización Académica")
+    st.title(" Calculadora de Optimización Académica")
 
     st.markdown("### 1. Definición del Problema")
     col1, col2, col3 = st.columns([1, 2, 1])
@@ -679,7 +679,7 @@ def main_app():
 
                 # --- RENDERIZADO DEL MODO EXAMEN ---
                 if show_exam_mode and exam_log:
-                    st.markdown("#### 📝 Apuntes del Profesor: Procedimiento a Mano")
+                    st.markdown("#### 📝 Apuntes del Profesor: Primeras tres iteraciones ")
                     st.info(f"Mostrando los cálculos detallados para las primeras {len(exam_log)} iteraciones utilizando el **{method}**.")
                     
                     cols_exam = st.columns(len(exam_log))
