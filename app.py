@@ -110,18 +110,59 @@ st.markdown(
     }
     .method-card strong { color: #000000 !important; display: block; margin-bottom: 4px; }
     .method-card span { color: #4B5563 !important; }
+    
     /* =========================
-       INPUTS (CAJAS DE TEXTO)
+       INPUTS, SELECTBOXES Y CAJAS DE NÚMEROS
     ========================= */
-    input, select, textarea, [data-baseweb="select"], [data-baseweb="input"] {
+    input, textarea, 
+    [data-baseweb="select"] > div, 
+    [data-baseweb="input"] > div {
         background-color: #FFFFFF !important;
         color: #000000 !important;
         border: 1px solid #D1D5DB !important;
         border-radius: 8px !important;
     }
-    [data-testid="stWidgetLabel"] *, input *, select * { color: #000000 !important; }
+    
+    [data-testid="stWidgetLabel"] *, input *, select *, [data-baseweb="select"] span { 
+        color: #000000 !important; 
+    }
+    
+    /* Flecha del menú desplegable */
+    [data-baseweb="select"] svg { 
+        fill: #000000 !important; 
+    }
+
     /* =========================
-       DROPDOWNS (MENÚS DESPLEGABLES)
+       BOTONES DE SUMAR/RESTAR (+/-)
+    ========================= */
+    [data-testid="stNumberInputStepUp"],
+    [data-testid="stNumberInputStepDown"],
+    div[data-baseweb="input"] button {
+        background-color: #FFFFFF !important;
+        color: #000000 !important;
+        border: none !important;
+        transition: all 0.2s ease !important;
+    }
+    
+    [data-testid="stNumberInputStepUp"] svg,
+    [data-testid="stNumberInputStepDown"] svg,
+    div[data-baseweb="input"] button svg {
+        fill: currentColor !important; /* Para que el ícono tome el color de la letra */
+    }
+
+    /* Efecto al pasar el mouse o hacer clic en + / - */
+    [data-testid="stNumberInputStepUp"]:hover,
+    [data-testid="stNumberInputStepDown"]:hover,
+    [data-testid="stNumberInputStepUp"]:active,
+    [data-testid="stNumberInputStepDown"]:active,
+    div[data-baseweb="input"] button:hover,
+    div[data-baseweb="input"] button:active {
+        background-color: #000000 !important;
+        color: #FFFFFF !important;
+    }
+
+    /* =========================
+       DROPDOWNS (MENÚS DESPLEGABLES - LA LISTA INTERNA)
     ========================= */
     div[data-baseweb="popover"], div[data-baseweb="popover"] *,
     div[role="listbox"], div[role="listbox"] *, ul[role="listbox"],
@@ -129,18 +170,21 @@ st.markdown(
         background-color: #FFFFFF !important;
         color: #000000 !important;
     }
+    
+    /* Efecto al pasar el mouse por las opciones de la lista */
     li[role="option"]:hover, li[role="option"]:hover *,
     div[data-baseweb="popover"] li:hover, div[data-baseweb="popover"] li:hover * {
-        background-color: #F3F4F6 !important;
-        color: #000000 !important;
+        background-color: #000000 !important;
+        color: #FFFFFF !important;
     }
+
     /* =========================
-       BOTONES
+       BOTONES PRINCIPALES
     ========================= */
     .stButton > button, [data-testid="stForm"] button, button[kind="primaryFormSubmit"] {
-        background-color: #2563EB !important;
-        color: #FFFFFF !important;
-        border: none !important;
+        background-color: #FFFFFF !important;
+        color: #000000 !important;
+        border: 1px solid #D1D5DB !important;
         border-radius: 8px !important;
         font-size: 16px !important;
         font-weight: bold !important;
@@ -148,13 +192,19 @@ st.markdown(
         padding: 10px 24px !important;
         transition: 0.2s ease !important;
     }
-    .stButton > button:hover, [data-testid="stForm"] button:hover, button[kind="primaryFormSubmit"]:hover {
-        background-color: #FFFFFF !important; /* Al pasar el mouse se pone blanco */
-        color: #2563EB !important; /* El texto se vuelve azul para contrastar */
-        border: 1px solid #2563EB !important;
+    
+    /* Efecto hover en botones principales */
+    .stButton > button:hover, [data-testid="stForm"] button:hover, button[kind="primaryFormSubmit"]:hover,
+    .stButton > button:active {
+        background-color: #000000 !important; 
+        color: #FFFFFF !important; 
+        border: 1px solid #000000 !important;
         transform: translateY(-1px);
     }
-    .stButton > button:hover *, [data-testid="stForm"] button:hover * { color: #2563EB !important; }
+    .stButton > button:hover *, [data-testid="stForm"] button:hover * { 
+        color: #FFFFFF !important; 
+    }
+
     /* =========================
        TABLAS
     ========================= */
