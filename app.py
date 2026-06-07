@@ -1,29 +1,86 @@
-import streamlit as st          # Librería principal para crear la interfaz web
-import numpy as np              # Para cálculos numéricos, vectores y matrices
-import pandas as pd             # Para el manejo de datos en tablas (DataFrames)
-import sympy as sp              # Para cálculo simbólico (derivadas, gradientes, hessianas)
-import re                       # Para expresiones regulares (limpieza de textos)
-import matplotlib.pyplot as plt # Para la creación de gráficos 2D
-import plotly.graph_objects as go # Para la creación de gráficos 3D interactivos
-from plotly.subplots import make_subplots # Para crear gráficos con múltiples ejes (eje Y secundario)
+import streamlit as st
+import numpy as np
+import pandas as pd
+import sympy as sp
+import re
+import matplotlib.pyplot as plt
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 st.set_page_config(page_title="Calculadora de Optimización", layout="wide", initial_sidebar_state="expanded")
+
+# --- CSS MEJORADO PARA EL MODO BLANCO ---
+st.markdown(
+    """
+    <style>
+    /* Fondo general */
+    .stApp { background-color: #FFFFFF !important; }
+    
+    /* Forzar que todo texto sea negro */
+    p, h1, h2, h3, h4, div, span, li { color: #000000 !important; }
+    
+    /* Corrección del Diálogo (El Popup) */
+    [data-testid="stDialog"] {
+        background-color: #FFFFFF !important;
+    }
+    div[role="dialog"] {
+        background-color: #FFFFFF !important;
+        border: 1px solid #E5E7EB;
+    }
+    /* Estilo para asegurar que el contenido dentro del modal sea blanco */
+    div[data-baseweb="modal"] {
+        background-color: #FFFFFF !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
 if "user_name" not in st.session_state:
     st.session_state.user_name = ""
 
 if not st.session_state.user_name:
     st.title("Calculadora")
-    st.divider() # Línea separadora
-    st.subheader("Bienvenido")
     name_input = st.text_input("Tu nombre:")
-    if st.button("Entrar a la aplicación"):
-        if name_input: # Si escribió algo, se guarda y se recarga la página
+    if st.button("Entrar"):
+        if name_input:
             st.session_state.user_name = name_input
             st.rerun()
-        else: # Si está vacío, muestra una advertencia
-            st.warning("Por favor, escribe un nombre primero.")
     st.stop()
+
+@st.dialog("📖 Definición del Método")
+def mostrar_metodo():
+    # He añadido un pequeño estilo extra aquí por si acaso
+    st.markdown("""<style>div[role="dialog"] { background-color: white !important; }</style>""", unsafe_allow_html=True)
+    
+    metodo = st.session_state.get("metodo_info", "")
+    if metodo == "gradiente":
+        st.subheader("Método del Gradiente")
+        st.write("Busca mínimos moviéndose en la dirección opuesta al gradiente.")
+    elif metodo == "newton":
+        st.subheader("Método de Newton")
+        st.write("Utiliza gradiente y Hessiana para aproximar el óptimo.")
+    elif metodo == "conjugado":
+        st.subheader("Gradiente Conjugado")
+        st.write("Genera direcciones conjugadas para mayor eficiencia.")
+    
+    if st.button("Cerrar"):
+        st.rerun()
+
+# --- INTERFAZ PRINCIPAL ---
+st.sidebar.markdown(f"**Usuario:** {st.session_state.user_name}")
+
+if st.sidebar.button("📉 Método del Gradiente"):
+    st.session_state.metodo_info = "gradiente"
+    mostrar_metodo()
+
+if st.sidebar.button("🚀 Método de Newton"):
+    st.session_state.metodo_info = "newton"
+    mostrar_metodo()
+
+st.title("Calculadora de Optimización")
+st.write("Bienvenido a la calculadora, selecciona un método en la barra lateral.")
+
 
 st.markdown(
     """
